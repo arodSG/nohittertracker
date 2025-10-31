@@ -1,0 +1,43 @@
+{
+    "num_innings_to_alert": 6.0,
+    "debug_mode": false,
+    "ntfy_alert": true,
+    "ntfy_settings": {
+        "enabled": true,
+        "topic": "arodsg-nohittertracker",
+        "title": "NoHitterTracker"
+    },
+    "last_game_date": "",
+    "team_hashtags": {
+        "ATL": "BravesCountry",
+        "AZ": "DBacks",
+        "BAL": "Birdland",
+        "BOS": "DirtyWater",
+        "CHC": "BeHereForIt",
+        "CIN": "ATOBTTR",
+        "CLE": "GuardsBall",
+        "COL": "Rockies",
+        "CWS": "WhiteSox",
+        "DET": "RepDetroit",
+        "HOU": "BuiltForThis",
+        "KC": "FountainsUp",
+        "LAA": "RepTheHalo",
+        "LAD": "LetsGoDodgers",
+        "MIA": "MarlinsBeisbol",
+        "MIL": "ThisIsMyCrew",
+        "MIN": "MNTwins",
+        "NYM": "LGM",
+        "NYY": "RepBX",
+        "OAK": "Athletics",
+        "PHI": "RingTheBell",
+        "PIT": "LetsGoBucs",
+        "SD": "ForTheFaithful",
+        "SEA": "TridentsUp",
+        "SF": "SFGiants",
+        "STL": "ForTheLou",
+        "TB": "RaysUp",
+        "TEX": "AllForTX",
+        "TOR": "LightsUpLetsGo",
+        "WSH": "NATITUDE"
+    }
+}
