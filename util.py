@@ -2,7 +2,7 @@ import json
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-from arodsgntfy import ntfy_send
+# from arodsgntfy import ntfy_send
 
 config = {}
 session = requests.session()
@@ -31,6 +31,6 @@ def make_request(url, params=None):
 def arodsg_ntfy(message, click_action=None):
     global config
     if config['ntfy_settings']['enabled']:
-        ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
+        # ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
     else:
         print(message)
