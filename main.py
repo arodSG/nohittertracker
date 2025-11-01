@@ -74,6 +74,11 @@ def check_no_hitter(game_details, team_id):
                 pass
 
 
+def update_last_game_date(date):
+    with open(constants.LAST_GAME_DATE_FILE_PATH, 'wb') as last_game_date_file:
+        pickle.dump({'last_game_date': date}, last_game_date_file)
+
+
 def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
     team_ids_tweeted[team_id] = {'is_combined': is_combined, 'is_perfect_game': is_perfect_game, 'is_finished': is_finished}
     with open(constants.TEAM_IDS_TWEETED_FILE_PATH, 'wb') as team_ids_tweeted_file:
@@ -215,18 +220,12 @@ def get_team_hashtag(team_abbrv):
     return team_hashtags[team_abbrv] if team_abbrv in team_hashtags else team_abbrv
 
 
-def load_team_ids_tweeted(file_path):
+def load_pickle(file_path):
     try:
         with open(file_path, 'rb') as file:
             return pickle.load(file)
     except (FileNotFoundError, ValueError):
         return {}
-
-
-def update_config_date(date):
-    util.config['last_game_date'] = date
-    with open(constants.CONFIG_FILE_PATH, 'w') as file:
-        json.dump(util.config, file, indent=4)
 
 
 def check_team(team_id, status):
@@ -240,18 +239,18 @@ if __name__ == '__main__':
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
-        print(f"last_game_date: {util.config['last_game_date']}")
-
         util.create_session()
+        last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
+        print(f"last_game_date: {last_game_date}")
         game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
         game_info = get_game_info_by_date(game_date)
 
-        if game_date == util.config['last_game_date']:
-            team_ids_tweeted = load_team_ids_tweeted(constants.TEAM_IDS_TWEETED_FILE_PATH)
+        if game_date == last_game_date:
+            team_ids_tweeted = load_pickle(constants.TEAM_IDS_TWEETED_FILE_PATH)
             print(f"team_ids_tweeted.pkl: {team_ids_tweeted}")
         else:
             reset_team_ids_tweeted()
-            update_config_date(game_date)
+            update_last_game_date(game_date)
 
         for game_id, game_info in game_info.items():
             game_status = game_info['status']

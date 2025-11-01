@@ -1,6 +1,7 @@
 import os
 
 
+LAST_GAME_DATE_FILE_PATH = '/data/last_game_date.pkl'
 TEAM_IDS_TWEETED_FILE_PATH = '/data/team_ids_tweeted.pkl'
 CONFIG_FILE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/config.json'
 
