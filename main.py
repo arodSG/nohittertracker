@@ -76,7 +76,7 @@ def check_no_hitter(game_details, team_id):
 
 def update_last_game_date(date):
     with open(constants.LAST_GAME_DATE_FILE_PATH, 'wb') as last_game_date_file:
-        pickle.dump({'last_game_date': date}, last_game_date_file)
+        pickle.dump(date, last_game_date_file)
 
 
 def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
