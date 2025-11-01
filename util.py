@@ -13,7 +13,7 @@ def load_config(config_file_path):
     print('Loading config...')
     try:
         with open(config_file_path, 'r+') as file:
-            required_keys = {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'last_game_date', 'team_hashtags'}
+            required_keys = {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'team_hashtags'}
             config_data = json.load(file)
             missing_keys = required_keys - config_data.keys()
 
