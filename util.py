@@ -30,7 +30,7 @@ def make_request(url, params=None):
 
 def arodsg_ntfy(message, click_action=None):
     global config
-    if config['ntfy_settings']['enabled']:
-        # ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
-    else:
-        print(message)
+    # if config['ntfy_settings']['enabled']:
+    #     ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
+    # else:
+    #     print(message)
