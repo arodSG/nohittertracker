@@ -1,7 +1,7 @@
 import os
 
 
-TEAM_IDS_TWEETED_FILE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/data/team_ids_tweeted.pkl'
+TEAM_IDS_TWEETED_FILE_PATH = '/data/team_ids_tweeted.pkl'
 CONFIG_FILE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/config.json'
 
 PITCHER_STATS = '{num_strikeouts} K, {num_walks} BB, {num_runs} R, {num_pitches} PC'
