@@ -3,4 +3,3 @@
 .venv
 __pycache__
 team_ids_tweeted.pkl
-config.json
