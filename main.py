@@ -239,6 +239,9 @@ if __name__ == '__main__':
     print('Running No-Hitter Tracker...')
     util.load_config(constants.CONFIG_FILE_PATH)
 
+    print(f"{constants.CONFIG_FILE_PATH}")
+    print(f"{util.config}")
+
     if util.config is not None:
         print(f"last_game_date: {util.config['last_game_date']}")
 
