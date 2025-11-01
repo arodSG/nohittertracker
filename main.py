@@ -236,6 +236,7 @@ def check_team(team_id, status):
 
 
 if __name__ == '__main__':
+    print('Running No-Hitter Tracker...')
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
@@ -262,5 +263,3 @@ if __name__ == '__main__':
                     check_no_hitter(game, game_home_team_id)
                 if check_away_team:
                     check_no_hitter(game, game_away_team_id)
-    else:
-        print('Error loading config data. Required keys: num_innings_to_alert, debug_mode, ntfy_settings, last_game_date, team_hashtags')

@@ -10,11 +10,14 @@ session = requests.session()
 
 def load_config(config_file_path):
     global config
+    print('Loading config...')
     try:
         with open(config_file_path, 'r+') as file:
             config_data = json.load(file)
             config = config_data if config_data.keys() >= {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'last_game_date', 'team_hashtags'} else None
+            print('Config loaded.')
     except FileNotFoundError:
+        print('Error loading config.')
         return None
 
 
