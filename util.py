@@ -13,8 +13,14 @@ def load_config(config_file_path):
     print('Loading config...')
     try:
         with open(config_file_path, 'r+') as file:
+            required_keys = {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'last_game_date', 'team_hashtags'}
             config_data = json.load(file)
-            config = config_data if config_data.keys() >= {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'last_game_date', 'team_hashtags'} else None
+            missing_keys = required_keys - config_data.keys()
+
+            if missing_keys:
+                raise KeyError(f"Missing required config keys: {', '.join(missing_keys)}")
+
+            config = config_data
             print('Config loaded.')
     except FileNotFoundError:
         print('Error loading config.')
