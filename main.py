@@ -246,6 +246,7 @@ if __name__ == '__main__':
 
         if game_date == util.config['last_game_date']:
             team_ids_tweeted = load_team_ids_tweeted(constants.TEAM_IDS_TWEETED_FILE_PATH)
+            print(f"team_ids_tweeted.pkl: {team_ids_tweeted}")
         else:
             reset_team_ids_tweeted()
             update_config_date(game_date)
