@@ -2,4 +2,4 @@ requests
 python-dotenv
 tweepy
 urllib3
-git+https://${{ shared.GH_TOKEN_ARODSGNTFY }}@github.com/arodSG/arodsgntfy.git@master
+git+https://${GH_TOKEN_ARODSGNTFY}@github.com/arodSG/arodsgntfy.git@master
