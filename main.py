@@ -256,7 +256,7 @@ def main():
     util.create_session()
     game_info = get_game_info_by_date(game_date)
     num_games = len(game_info)
-    util.logger.info(f"{num_games} game{'s' if num_games != 1 else ''} found", extra={'game_info': game_info})
+    util.logger.info(f"{num_games} game{'s' if num_games != 1 else ''} found")
     
     for game_id, game_info in game_info.items():
         game_status = game_info['status']
