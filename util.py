@@ -12,7 +12,8 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
 if not logger.handlers:
-    handler = logging.StreamHandler()
+    handler = logging.StreamHandler(sys.stdout)
+    handler.flush = sys.stdout.flush
     log_format = "%(asctime)s %(levelname)s %(message)s"
     json_formatter = jsonlogger.JsonFormatter(log_format)
     handler.setFormatter(json_formatter)
