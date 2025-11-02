@@ -275,6 +275,7 @@ if __name__ == '__main__':
         util.create_session()
 
         while True:
+            print()
             start_time = time.time()
             main()
 
@@ -282,5 +283,5 @@ if __name__ == '__main__':
             elapsed = time.time() - start_time
             sleep_time = max(0, constants.INTERVAL_SECONDS - (elapsed % constants.INTERVAL_SECONDS))
 
-            print(f"Sleeping for {math.ceil(sleep_time)} seconds...\n")
+            print(f"Sleeping for {math.ceil(sleep_time)} seconds...")
             time.sleep(sleep_time)
