@@ -266,17 +266,15 @@ def main():
         game_home_team_name = game_info['home_team_name']
         game_away_team_name = game_info['away_team_name']
 
-        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id}) - {game_status_detailed}", extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
         check_home_team = check_team(game_home_team_id, game_status)
         check_away_team = check_team(game_away_team_id, game_status)
+        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id}) - {game_status_detailed}", extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id, 'check_home_team': check_home_team, 'check_away_team': check_away_team})
 
         if check_home_team or check_away_team:
             game = GameDetails(game_id)
             if check_home_team:
-                util.logger.info(f'{game_id} - Checking home team ({game_home_team_id})', extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
                 check_no_hitter(game, game_home_team_id)
             if check_away_team:
-                util.logger.info(f'{game_id} - Checking away team ({game_away_team_id})', extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
                 check_no_hitter(game, game_away_team_id)
 
 
