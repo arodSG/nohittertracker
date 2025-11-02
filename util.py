@@ -11,11 +11,12 @@ ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
-handler = logging.StreamHandler()
-log_format = "%(asctime)s %(levelname)s %(message)s"
-json_formatter = jsonlogger.JsonFormatter(log_format)
-handler.setFormatter(json_formatter)
-logger.addHandler(handler)
+if not logger.handlers:
+    handler = logging.StreamHandler()
+    log_format = "%(asctime)s %(levelname)s %(message)s"
+    json_formatter = jsonlogger.JsonFormatter(log_format)
+    handler.setFormatter(json_formatter)
+    logger.addHandler(handler)
 
 config = {}
 session = requests.session()
