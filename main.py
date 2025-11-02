@@ -14,8 +14,13 @@ import tweepy
 import pickle
 from tweepy import TweepyException
 import util
+import logging
 
 load_dotenv()
+logging.basicConfig(
+    level=logging.INFO,
+    format="%(asctime)s [%(levelname)s] %(message)s"
+)
 
 team_ids_tweeted = {}  # {team_id: {is_combined: False, is_perfect_game: False, is_finished: False}}
 
@@ -66,7 +71,7 @@ def check_no_hitter(game_details, team_id):
                 elif is_pitching_change:
                     send_pitching_change_tweet(game_details, team_id, is_perfect_game, innings_pitched)
             except KeyError as e:
-                print(game_details.game_id)
+                logging.info(game_details.game_id)
                 pass
         elif tweeted_not_finished:
             try:
@@ -77,7 +82,7 @@ def check_no_hitter(game_details, team_id):
 
 
 def update_last_game_date(date):
-    print('Updating last_game_date file...')
+    logging.info('Updating last_game_date file...')
     with open(constants.LAST_GAME_DATE_FILE_PATH, 'wb') as last_game_date_file:
         pickle.dump(date, last_game_date_file)
 
@@ -89,7 +94,7 @@ def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
 
 
 def reset_team_ids_tweeted():
-    print('Resetting team_ids_tweeted file...')
+    logging.info('Resetting team_ids_tweeted file...')
     with open(constants.TEAM_IDS_TWEETED_FILE_PATH, 'wb') as file:
         pickle.dump({}, file)
 
@@ -244,16 +249,16 @@ def main():
     last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
     game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
     game_info = get_game_info_by_date(game_date)
-    print(f"game_date: {game_date}, last_game_date: {last_game_date}")
+    logging.info(f"game_date: {game_date}, last_game_date: {last_game_date}")
 
     if game_date == last_game_date:
         team_ids_tweeted = load_pickle(constants.TEAM_IDS_TWEETED_FILE_PATH)
-        print(f"team_ids_tweeted.pkl: {team_ids_tweeted}")
+        logging.info(f"team_ids_tweeted.pkl: {team_ids_tweeted}")
     else:
         reset_team_ids_tweeted()
         update_last_game_date(game_date)
 
-    print(f"Scanning {len(game_info.items())} games...")
+    logging.info(f"Scanning {len(game_info.items())} games...")
     for game_id, game_info in game_info.items():
         game_status = game_info['status']
         game_home_team_id = game_info['home_team_id']
@@ -270,12 +275,12 @@ def main():
 
 
 if __name__ == '__main__':
-    print('Running No-Hitter Tracker...')
+    logging.info('Running No-Hitter Tracker...')
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
         while True:
-            print()
+            logging.info('')
             start_time = time.time()
             main()
 
@@ -283,5 +288,5 @@ if __name__ == '__main__':
             elapsed = time.time() - start_time
             sleep_time = max(0, constants.INTERVAL_SECONDS - (elapsed % constants.INTERVAL_SECONDS))
 
-            print(f"Sleeping for {math.ceil(sleep_time)} seconds...")
+            logging.info(f"Sleeping for {math.ceil(sleep_time)} seconds...")
             time.sleep(sleep_time)
