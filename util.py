@@ -3,14 +3,27 @@ import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 # from arodsgntfy import ntfy_send
+import logging
 
+logger = logging.getLogger()
+init_logger()
 config = {}
 session = requests.session()
 
 
+def init_logger():
+    global logger
+    logger.setLevel(logging.INFO)
+    handler = logging.StreamHandler()
+    log_format = "%(asctime)s %(levelname)s %(message)s"
+    json_formatter = jsonlogger.JsonFormatter(log_format)
+    handler.setFormatter(json_formatter)
+    logger.addHandler(handler)
+
+
 def load_config(config_file_path):
-    global config
-    print('Loading config...')
+    global logger, config
+    logger.info('Loading config...')
     try:
         with open(config_file_path, 'r+') as file:
             required_keys = {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'team_hashtags'}
@@ -27,10 +40,10 @@ def load_config(config_file_path):
 
 
 def create_session():
-    global session
+    global logger, session
     if session is not None:
         session.close()
-    print('Creating https session...')
+    logger.info('Creating https session...')
     retries = Retry(total=5, backoff_factor=1)
     session.mount('https://', HTTPAdapter(max_retries=retries))
 
