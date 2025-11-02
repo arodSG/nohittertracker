@@ -30,6 +30,7 @@ team_ids_tweeted = {}  # {team_id: {is_combined: False, is_perfect_game: False, 
 
 
 def get_game_info_by_date(date):  # Returns a map of { game_id: { game_status, home_team_id, away_team_id } for all games on the specified date
+    logger.info(f"Getting game info for {date}...")
     games = {}
     params = {'sportId': 1, 'date': date}
     request_endpoint = 'https://statsapi.mlb.com/api/v1/schedule/games/'
@@ -248,19 +249,19 @@ def check_team(team_id, status):
 
 
 def main():
-    util.create_session()
-
     last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
     game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
-    game_info = get_game_info_by_date(game_date)
     logger.info(f"game_date: {game_date}, last_game_date: {last_game_date}")
 
     if game_date == last_game_date:
         team_ids_tweeted = load_pickle(constants.TEAM_IDS_TWEETED_FILE_PATH)
-        logger.info(f"team_ids_tweeted.pkl: {team_ids_tweeted}")
+        logger.info(f"team_ids_tweeted: {team_ids_tweeted}")
     else:
         reset_team_ids_tweeted()
         update_last_game_date(game_date)
+
+    util.create_session()
+    game_info = get_game_info_by_date(game_date)
 
     logger.info(f"Scanning {len(game_info.items())} games...")
     for game_id, game_info in game_info.items():
