@@ -4,6 +4,7 @@
 import os
 from dotenv import load_dotenv
 import constants
+import time
 from datetime import datetime, timedelta
 from game_details import GameDetails
 import requests
@@ -236,7 +237,7 @@ def check_team(team_id, status):
     return not team_finished and (status == 'I' or (status == 'F' and team_tweeted))
 
 
-if __name__ == '__main__':
+def main():
     print('Running No-Hitter Tracker...')
     util.load_config(constants.CONFIG_FILE_PATH)
 
@@ -268,3 +269,19 @@ if __name__ == '__main__':
                     check_no_hitter(game, game_home_team_id)
                 if check_away_team:
                     check_no_hitter(game, game_away_team_id)
+
+
+if __name__ == '__main__':
+    while True:
+        start_time = time.time()
+        main()
+
+        interval_minutes = int(os.getenv('INTERVAL_MINUTES', 3))
+        interval_seconds = interval_minutes * 60
+
+        # Calculate sleep time aligned to the interval
+        elapsed = time.time() - start_time
+        sleep_time = max(0, interval_seconds - (elapsed % interval_seconds))
+
+        print(f"Sleeping for {int(sleep_time)} seconds...\n")
+        time.sleep(sleep_time)
