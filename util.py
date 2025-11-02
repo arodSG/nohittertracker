@@ -21,14 +21,14 @@ def load_config(config_file_path):
                 raise KeyError(f"Missing required config keys: {', '.join(missing_keys)}")
 
             config = config_data
-            print('Config loaded.')
     except FileNotFoundError:
-        print('Error loading config.')
+        print('Config file not found.')
         return None
 
 
 def create_session():
     global session
+    print('Creating https session...')
     retries = Retry(total=5, backoff_factor=1)
     session.mount('https://', HTTPAdapter(max_retries=retries))
 

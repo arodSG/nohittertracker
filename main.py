@@ -75,6 +75,7 @@ def check_no_hitter(game_details, team_id):
 
 
 def update_last_game_date(date):
+    print('Updating last_game_date file...')
     with open(constants.LAST_GAME_DATE_FILE_PATH, 'wb') as last_game_date_file:
         pickle.dump(date, last_game_date_file)
 
@@ -86,6 +87,7 @@ def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
 
 
 def reset_team_ids_tweeted():
+    print('Resetting team_ids_tweeted file...')
     with open(constants.TEAM_IDS_TWEETED_FILE_PATH, 'wb') as file:
         pickle.dump({}, file)
 
@@ -241,9 +243,9 @@ if __name__ == '__main__':
     if util.config is not None:
         util.create_session()
         last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
-        print(f"last_game_date: {last_game_date}")
         game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
         game_info = get_game_info_by_date(game_date)
+        print(f"game_date: {game_date}, last_game_date: {last_game_date}")
 
         if game_date == last_game_date:
             team_ids_tweeted = load_pickle(constants.TEAM_IDS_TWEETED_FILE_PATH)
@@ -252,6 +254,7 @@ if __name__ == '__main__':
             reset_team_ids_tweeted()
             update_last_game_date(game_date)
 
+        print(f"Scanning {len(game_info.items())} games...")
         for game_id, game_info in game_info.items():
             game_status = game_info['status']
             game_home_team_id = game_info['home_team_id']
