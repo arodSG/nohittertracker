@@ -4,6 +4,7 @@ from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
 # from arodsgntfy import ntfy_send
 import logging
+from pythonjsonlogger import jsonlogger
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)

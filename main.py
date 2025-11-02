@@ -14,7 +14,6 @@ import tweepy
 import pickle
 from tweepy import TweepyException
 import util
-from pythonjsonlogger import jsonlogger
 
 load_dotenv()
 
