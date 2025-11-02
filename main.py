@@ -1,8 +1,9 @@
 #!/usr/bin/python3
 # No-Hitter Tracker
 
-import os
 from dotenv import load_dotenv
+load_dotenv()
+import os
 import math
 import constants
 import time
@@ -14,8 +15,6 @@ import tweepy
 import pickle
 from tweepy import TweepyException
 import util
-
-load_dotenv()
 
 team_ids_tweeted = {}  # {team_id: {is_combined: False, is_perfect_game: False, is_finished: False}}
 
@@ -209,7 +208,7 @@ def build_and_send_tweet(message, game_details, team_id, is_finished):
     tweet_text = constants.TWEET.format(message=message, home_team_hashtag=home_team_hashtag, away_team_hashtag=away_team_hashtag)
     tweet_text_encoded = tweet_text.encode('utf-8')
 
-    if not util.config['debug_mode']:
+    if util.ENVIRONMENT == 'prod':
         try:
             twitter = tweepy.Client(consumer_key=os.getenv('TWITTER_CONSUMER_KEY'), consumer_secret=os.getenv('TWITTER_CONSUMER_SECRET'), access_token=os.getenv('TWITTER_ACCESS_TOKEN'), access_token_secret=os.getenv('TWITTER_ACCESS_TOKEN_SECRET'))
             response = twitter.create_tweet(text=tweet_text_encoded)

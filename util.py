@@ -1,3 +1,4 @@
+import os
 import json
 import requests
 from urllib3.util.retry import Retry
@@ -5,6 +6,8 @@ from requests.adapters import HTTPAdapter
 # from arodsgntfy import ntfy_send
 import logging
 from pythonjsonlogger import jsonlogger
+
+ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 
 logger = logging.getLogger()
 logger.setLevel(logging.INFO)
@@ -23,7 +26,7 @@ def load_config(config_file_path):
     logger.info('Loading config...')
     try:
         with open(config_file_path, 'r+') as file:
-            required_keys = {'num_innings_to_alert', 'debug_mode', 'ntfy_settings', 'team_hashtags'}
+            required_keys = {'num_innings_to_alert', 'ntfy_settings', 'team_hashtags'}
             config_data = json.load(file)
             missing_keys = required_keys - config_data.keys()
 
