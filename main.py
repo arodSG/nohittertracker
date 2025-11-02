@@ -3,6 +3,7 @@
 
 import os
 from dotenv import load_dotenv
+import math
 import constants
 import time
 from datetime import datetime, timedelta
@@ -277,12 +278,9 @@ if __name__ == '__main__':
             start_time = time.time()
             main()
 
-            interval_minutes = int(os.getenv('INTERVAL_MINUTES', 3))
-            interval_seconds = interval_minutes * 60
-
             # Calculate sleep time aligned to the interval
             elapsed = time.time() - start_time
-            sleep_time = max(0, interval_seconds - (elapsed % interval_seconds))
+            sleep_time = max(0, INTERVAL_SECONDS - (elapsed % INTERVAL_SECONDS))
 
-            print(f"Sleeping for {int(sleep_time)} seconds...\n")
+            print(f"Sleeping for {math.ceil(sleep_time)} seconds...\n")
             time.sleep(sleep_time)
