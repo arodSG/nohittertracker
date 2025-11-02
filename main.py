@@ -280,7 +280,7 @@ if __name__ == '__main__':
 
             # Calculate sleep time aligned to the interval
             elapsed = time.time() - start_time
-            sleep_time = max(0, INTERVAL_SECONDS - (elapsed % INTERVAL_SECONDS))
+            sleep_time = max(0, constants.INTERVAL_SECONDS - (elapsed % constants.INTERVAL_SECONDS))
 
             print(f"Sleeping for {math.ceil(sleep_time)} seconds...\n")
             time.sleep(sleep_time)
