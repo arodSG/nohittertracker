@@ -21,10 +21,10 @@ team_ids_tweeted = {}  # {team_id: {is_combined: False, is_perfect_game: False, 
 
 
 def get_game_info_by_date(date):  # Returns a map of { game_id: { game_status, home_team_id, away_team_id } for all games on the specified date
-    util.logger.info(f"Getting game info for {date}...")
     games = {}
     params = {'sportId': 1, 'date': date}
     request_endpoint = 'https://statsapi.mlb.com/api/v1/schedule/games/'
+    util.logger.info(f"Getting game info for {date}...", extra={'url': request_endpoint, 'params': params})
 
     try:
         response = util.make_request(request_endpoint, params)
@@ -264,7 +264,7 @@ def main():
         game_home_team_name = game_info['home_team_name']
         game_away_team_name = game_info['away_team_name']
 
-        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id})")
+        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id})", extra={'game_id': game_id, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
         check_home_team = check_team(game_home_team_id, game_status)
         check_away_team = check_team(game_away_team_id, game_status)
 
