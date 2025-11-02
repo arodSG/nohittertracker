@@ -35,6 +35,7 @@ def get_game_info_by_date(date):  # Returns a map of { game_id: { game_status, h
                     game_pk = game_json['gamePk']
                     games[game_pk] = {}
                     games[game_pk]['status'] = GameDetails.get_game_status(game_json['status'])
+                    games[game_pk]['status_detailed'] = game_json['status']['detailedState']
                     games[game_pk]['home_team_id'] = game_json['teams']['home']['team']['id']
                     games[game_pk]['away_team_id'] = game_json['teams']['away']['team']['id']
                     games[game_pk]['home_team_name'] = game_json['teams']['home']['team']['name']
@@ -259,12 +260,13 @@ def main():
     util.logger.info(f"Scanning {len(game_info)} game{'s' if len(game_info) != 1 else ''}...")
     for game_id, game_info in game_info.items():
         game_status = game_info['status']
+        game_status_detailed = game_info['status_detailed']
         game_home_team_id = game_info['home_team_id']
         game_away_team_id = game_info['away_team_id']
         game_home_team_name = game_info['home_team_name']
         game_away_team_name = game_info['away_team_name']
 
-        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id})", extra={'game_id': game_id, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
+        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id}) - {game_status_detailed}", extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id})
         check_home_team = check_team(game_home_team_id, game_status)
         check_away_team = check_team(game_away_team_id, game_status)
 
