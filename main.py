@@ -254,11 +254,13 @@ def main():
     util.create_session()
     game_info = get_game_info_by_date(game_date)
 
-    util.logger.info(f"Scanning {len(game_info.items())} games...")
+    util.logger.info(f"Scanning {len(game_info)} game{'s' if len(game_info) != 1 else ''}...")
     for game_id, game_info in game_info.items():
         game_status = game_info['status']
         game_home_team_id = game_info['home_team_id']
         game_away_team_id = game_info['away_team_id']
+
+        util.logger.info(f"game_id: {game_id}, home_team_id: {game_home_team_id}, away_team_id: {game_away_team_id}")
         check_home_team = check_team(game_home_team_id, game_status)
         check_away_team = check_team(game_away_team_id, game_status)
 
