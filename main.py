@@ -239,6 +239,8 @@ def check_team(team_id, status):
 
 
 def main():
+    util.create_session()
+
     last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
     game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
     game_info = get_game_info_by_date(game_date)
@@ -272,8 +274,6 @@ if __name__ == '__main__':
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
-        util.create_session()
-
         while True:
             print()
             start_time = time.time()
