@@ -6,19 +6,15 @@ from requests.adapters import HTTPAdapter
 import logging
 
 logger = logging.getLogger()
-init_logger()
+logger.setLevel(logging.INFO)
+handler = logging.StreamHandler()
+log_format = "%(asctime)s %(levelname)s %(message)s"
+json_formatter = jsonlogger.JsonFormatter(log_format)
+handler.setFormatter(json_formatter)
+logger.addHandler(handler)
+
 config = {}
 session = requests.session()
-
-
-def init_logger():
-    global logger
-    logger.setLevel(logging.INFO)
-    handler = logging.StreamHandler()
-    log_format = "%(asctime)s %(levelname)s %(message)s"
-    json_formatter = jsonlogger.JsonFormatter(log_format)
-    handler.setFormatter(json_formatter)
-    logger.addHandler(handler)
 
 
 def load_config(config_file_path):
