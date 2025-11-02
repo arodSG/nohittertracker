@@ -278,7 +278,7 @@ def main():
 
 
 if __name__ == '__main__':
-    util.logger.info('Running No-Hitter Tracker...')
+    util.logger.info(f'Running No-Hitter Tracker - ENVIRONMENT: {util.ENVIRONMENT}')
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
