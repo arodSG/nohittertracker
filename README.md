@@ -30,8 +30,6 @@ Dependencies are found in `requirements.txt` and can be installed with `pip3 ins
 - `num_innings_to_alert` - decimal
   - Number of no-hit innings that must be pitched by a team before sending a tweet.
   - This should be in "baseball" format, ex: 6.0 for 6 full innings pitched, 6.1 for 6 innings + 1 out, 6.2 for 6 innings + 2 outs.
-- `ntfy_alert` - boolean
-  - Will be deleted.
 - `ntfy_settings`
   - `enabled` - boolean
     - Flag for sending Ntfy push notifications. If set to true, notifications will be sent.

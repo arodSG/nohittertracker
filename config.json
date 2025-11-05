@@ -1,6 +1,5 @@
 {
     "num_innings_to_alert": 6.0,
-    "ntfy_alert": true,
     "ntfy_settings": {
         "enabled": true,
         "topic": "arodsg-nohittertracker",
