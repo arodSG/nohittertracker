@@ -1,9 +1,12 @@
 #!/usr/bin/python3
 # No-Hitter Tracker
 
-import os
 from dotenv import load_dotenv
+load_dotenv()
+import os
+import math
 import constants
+import time
 from datetime import datetime, timedelta
 from game_details import GameDetails
 import requests
@@ -13,8 +16,6 @@ import pickle
 from tweepy import TweepyException
 import util
 
-load_dotenv()
-
 team_ids_tweeted = {}  # {team_id: {is_combined: False, is_perfect_game: False, is_finished: False}}
 
 
@@ -22,6 +23,7 @@ def get_game_info_by_date(date):  # Returns a map of { game_id: { game_status, h
     games = {}
     params = {'sportId': 1, 'date': date}
     request_endpoint = 'https://statsapi.mlb.com/api/v1/schedule/games/'
+    util.logger.info(f"Getting game info for {date}...", extra={'url': request_endpoint, 'params': params})
 
     try:
         response = util.make_request(request_endpoint, params)
@@ -32,8 +34,11 @@ def get_game_info_by_date(date):  # Returns a map of { game_id: { game_status, h
                     game_pk = game_json['gamePk']
                     games[game_pk] = {}
                     games[game_pk]['status'] = GameDetails.get_game_status(game_json['status'])
+                    games[game_pk]['status_detailed'] = game_json['status']['detailedState']
                     games[game_pk]['home_team_id'] = game_json['teams']['home']['team']['id']
                     games[game_pk]['away_team_id'] = game_json['teams']['away']['team']['id']
+                    games[game_pk]['home_team_name'] = game_json['teams']['home']['team']['name']
+                    games[game_pk]['away_team_name'] = game_json['teams']['away']['team']['name']
     except (ConnectionError, requests.exceptions.RequestException) as e:
         util.arodsg_ntfy(str(e))
 
@@ -64,7 +69,7 @@ def check_no_hitter(game_details, team_id):
                 elif is_pitching_change:
                     send_pitching_change_tweet(game_details, team_id, is_perfect_game, innings_pitched)
             except KeyError as e:
-                print(game_details.game_id)
+                util.logger.info(game_details.game_id)
                 pass
         elif tweeted_not_finished:
             try:
@@ -74,6 +79,12 @@ def check_no_hitter(game_details, team_id):
                 pass
 
 
+def update_last_game_date(date):
+    util.logger.info('Updating last_game_date file...')
+    with open(constants.LAST_GAME_DATE_FILE_PATH, 'wb') as last_game_date_file:
+        pickle.dump(date, last_game_date_file)
+
+
 def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
     team_ids_tweeted[team_id] = {'is_combined': is_combined, 'is_perfect_game': is_perfect_game, 'is_finished': is_finished}
     with open(constants.TEAM_IDS_TWEETED_FILE_PATH, 'wb') as team_ids_tweeted_file:
@@ -81,6 +92,7 @@ def update_team_ids_tweeted(team_id, is_combined, is_perfect_game, is_finished):
 
 
 def reset_team_ids_tweeted():
+    util.logger.info('Resetting team_ids_tweeted file...')
     with open(constants.TEAM_IDS_TWEETED_FILE_PATH, 'wb') as file:
         pickle.dump({}, file)
 
@@ -196,7 +208,7 @@ def build_and_send_tweet(message, game_details, team_id, is_finished):
     tweet_text = constants.TWEET.format(message=message, home_team_hashtag=home_team_hashtag, away_team_hashtag=away_team_hashtag)
     tweet_text_encoded = tweet_text.encode('utf-8')
 
-    if not util.config['debug_mode']:
+    if util.ENVIRONMENT == 'prod':
         try:
             twitter = tweepy.Client(consumer_key=os.getenv('TWITTER_CONSUMER_KEY'), consumer_secret=os.getenv('TWITTER_CONSUMER_SECRET'), access_token=os.getenv('TWITTER_ACCESS_TOKEN'), access_token_secret=os.getenv('TWITTER_ACCESS_TOKEN_SECRET'))
             response = twitter.create_tweet(text=tweet_text_encoded)
@@ -215,18 +227,12 @@ def get_team_hashtag(team_abbrv):
     return team_hashtags[team_abbrv] if team_abbrv in team_hashtags else team_abbrv
 
 
-def load_team_ids_tweeted(file_path):
+def load_pickle(file_path):
     try:
         with open(file_path, 'rb') as file:
             return pickle.load(file)
     except (FileNotFoundError, ValueError):
         return {}
-
-
-def update_config_date(date):
-    util.config['last_game_date'] = date
-    with open(constants.CONFIG_FILE_PATH, 'w') as file:
-        json.dump(util.config, file, indent=4)
 
 
 def check_team(team_id, status):
@@ -235,31 +241,56 @@ def check_team(team_id, status):
     return not team_finished and (status == 'I' or (status == 'F' and team_tweeted))
 
 
+def main():
+    last_game_date = load_pickle(constants.LAST_GAME_DATE_FILE_PATH)
+    game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
+    util.logger.info(f"game_date: {game_date}, last_game_date: {last_game_date}")
+
+    if game_date == last_game_date:
+        team_ids_tweeted = load_pickle(constants.TEAM_IDS_TWEETED_FILE_PATH)
+        util.logger.info(f"team_ids_tweeted: {team_ids_tweeted}")
+    else:
+        reset_team_ids_tweeted()
+        update_last_game_date(game_date)
+
+    util.create_session()
+    game_info = get_game_info_by_date(game_date)
+    num_games = len(game_info)
+    util.logger.info(f"{num_games} game{'s' if num_games != 1 else ''} found")
+    
+    for game_id, game_info in game_info.items():
+        game_status = game_info['status']
+        game_status_detailed = game_info['status_detailed']
+        game_home_team_id = game_info['home_team_id']
+        game_away_team_id = game_info['away_team_id']
+        game_home_team_name = game_info['home_team_name']
+        game_away_team_name = game_info['away_team_name']
+
+        check_home_team = check_team(game_home_team_id, game_status)
+        check_away_team = check_team(game_away_team_id, game_status)
+        util.logger.info(f"{game_id} - {game_home_team_name} ({game_home_team_id}) vs. {game_away_team_name} ({game_away_team_id}) - {game_status_detailed}", extra={'game_id': game_id, 'game_status': game_status, 'home_team_id': game_home_team_id, 'away_team_id': game_away_team_id, 'check_home_team': check_home_team, 'check_away_team': check_away_team})
+
+        if check_home_team or check_away_team:
+            game = GameDetails(game_id)
+            if check_home_team:
+                check_no_hitter(game, game_home_team_id)
+            if check_away_team:
+                check_no_hitter(game, game_away_team_id)
+
+
 if __name__ == '__main__':
-    print('Running No-Hitter Tracker...')
+    util.logger.info(f'Running No-Hitter Tracker - ENVIRONMENT: {util.ENVIRONMENT}')
     util.load_config(constants.CONFIG_FILE_PATH)
 
     if util.config is not None:
-        util.create_session()
-        game_date = (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
-        game_info = get_game_info_by_date(game_date)
+        while True:
+            util.logger.info('')
+            start_time = time.time()
+            main()
 
-        if game_date == util.config['last_game_date']:
-            team_ids_tweeted = load_team_ids_tweeted(constants.TEAM_IDS_TWEETED_FILE_PATH)
-        else:
-            reset_team_ids_tweeted()
-            update_config_date(game_date)
+            # Calculate sleep time aligned to the interval
+            elapsed = time.time() - start_time
+            sleep_time = max(0, constants.INTERVAL_SECONDS - (elapsed % constants.INTERVAL_SECONDS))
 
-        for game_id, game_info in game_info.items():
-            game_status = game_info['status']
-            game_home_team_id = game_info['home_team_id']
-            game_away_team_id = game_info['away_team_id']
-            check_home_team = check_team(game_home_team_id, game_status)
-            check_away_team = check_team(game_away_team_id, game_status)
-
-            if check_home_team or check_away_team:
-                game = GameDetails(game_id)
-                if check_home_team:
-                    check_no_hitter(game, game_home_team_id)
-                if check_away_team:
-                    check_no_hitter(game, game_away_team_id)
+            util.logger.info(f"Sleeping for {math.ceil(sleep_time)} seconds...")
+            time.sleep(sleep_time)
