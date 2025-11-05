@@ -284,6 +284,7 @@ if __name__ == '__main__':
 
     if util.config is not None:
         while True:
+            util.arodsg_ntfy('Running No-Hitter Tracker')
             util.logger.info('')
             start_time = time.time()
             main()
