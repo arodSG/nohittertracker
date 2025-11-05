@@ -1,12 +1,17 @@
+import importlib.util
 import os
 import sys
 import json
 import requests
 from urllib3.util.retry import Retry
 from requests.adapters import HTTPAdapter
-# from arodsgntfy import ntfy_send
 import logging
 from pythonjsonlogger import jsonlogger
+
+ARODSGNTFY_INSTALLED = is_module_installed('arodsgntfy')
+if ARODSGNTFY_INSTALLED:
+    from arodsgntfy import ntfy_send
+    print('arodsgntfy module found.')
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 
@@ -24,6 +29,10 @@ config = {}
 session = requests.session()
 
 
+def is_module_installed(module_name):
+    return importlib.util.find_spec(module_name) is not None
+
+
 def load_config(config_file_path):
     global logger, config
     logger.info('Loading config...')
@@ -38,7 +47,7 @@ def load_config(config_file_path):
 
             config = config_data
     except FileNotFoundError:
-        print('Config file not found.')
+        logger.error('Config file not found.')
         return None
 
 
@@ -57,7 +66,7 @@ def make_request(url, params=None):
 
 def arodsg_ntfy(message, click_action=None):
     global config
-    # if config['ntfy_settings']['enabled']:
-    #     ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
-    # else:
-    #     print(message)
+    logger.info(message)
+
+    if ARODSGNTFY_INSTALLED and config['ntfy_settings']['enabled']:
+        ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
