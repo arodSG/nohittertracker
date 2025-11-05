@@ -3,3 +3,4 @@ python-json-logger
 requests
 tweepy
 urllib3
+git+https://${GITHUB_TOKEN}@github.com/arodSG/arodsgntfy.git
