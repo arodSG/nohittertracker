@@ -8,6 +8,9 @@ from requests.adapters import HTTPAdapter
 import logging
 from pythonjsonlogger import jsonlogger
 
+def is_module_installed(module_name):
+    return importlib.util.find_spec(module_name) is not None
+
 ARODSGNTFY_INSTALLED = is_module_installed('arodsgntfy')
 if ARODSGNTFY_INSTALLED:
     from arodsgntfy import ntfy_send
@@ -27,10 +30,6 @@ if not logger.handlers:
 
 config = {}
 session = requests.session()
-
-
-def is_module_installed(module_name):
-    return importlib.util.find_spec(module_name) is not None
 
 
 def load_config(config_file_path):
