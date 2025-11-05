@@ -8,14 +8,6 @@ from requests.adapters import HTTPAdapter
 import logging
 from pythonjsonlogger import jsonlogger
 
-def is_module_installed(module_name):
-    return importlib.util.find_spec(module_name) is not None
-
-ARODSGNTFY_INSTALLED = is_module_installed('arodsgntfy')
-if ARODSGNTFY_INSTALLED:
-    from arodsgntfy import ntfy_send
-logger.info(f"arodsgntfy module{' not' if not ARODSGNTFY_INSTALLED else ''} found.")
-
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 
 logger = logging.getLogger()
@@ -27,6 +19,14 @@ if not logger.handlers:
     json_formatter = jsonlogger.JsonFormatter(log_format)
     handler.setFormatter(json_formatter)
     logger.addHandler(handler)
+
+def is_module_installed(module_name):
+    return importlib.util.find_spec(module_name) is not None
+
+ARODSGNTFY_INSTALLED = is_module_installed('arodsgntfy')
+if ARODSGNTFY_INSTALLED:
+    from arodsgntfy import ntfy_send
+logger.info(f"arodsgntfy module{' not' if not ARODSGNTFY_INSTALLED else ''} found.")
 
 config = {}
 session = requests.session()
