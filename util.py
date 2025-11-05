@@ -65,7 +65,7 @@ def make_request(url, params=None):
 
 def arodsg_ntfy(message, click_action=None):
     global config
-    logger.info(f'arodsgntfy: ${message}')
+    logger.info(f'arodsgntfy: {message}')
 
     if ARODSGNTFY_INSTALLED and config['ntfy_settings']['enabled']:
         ntfy_send(topic=config['ntfy_settings']['topic'], title=config['ntfy_settings']['title'], message=message, click_action=click_action, low_priority=False)
