@@ -14,7 +14,7 @@ def is_module_installed(module_name):
 ARODSGNTFY_INSTALLED = is_module_installed('arodsgntfy')
 if ARODSGNTFY_INSTALLED:
     from arodsgntfy import ntfy_send
-    print('arodsgntfy module found.')
+logger.info(f"arodsgntfy module{' not' if not ARODSGNTFY_INSTALLED else ''} found.")
 
 ENVIRONMENT = os.getenv('ENVIRONMENT', 'test')
 
