@@ -3,6 +3,7 @@
 from __future__ import annotations
 
 import argparse
+import os
 
 from dotenv import load_dotenv
 
@@ -13,8 +14,8 @@ from nohittertracker.service import NoHitterTracker
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Run the NoHitterTracker API server.')
-    parser.add_argument('--host', default='127.0.0.1')
-    parser.add_argument('--port', type=int, default=8001)
+    parser.add_argument('--host', default=os.getenv('HOST', '0.0.0.0'))
+    parser.add_argument('--port', type=int, default=int(os.getenv('PORT', 8001)))
     return parser.parse_args()
 
 
