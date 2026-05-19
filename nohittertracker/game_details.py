@@ -1,6 +1,7 @@
 import requests
-import util
-from play_details import PlayDetails
+
+from . import util
+from .play_details import PlayDetails
 
 
 class GameDetails:
@@ -26,9 +27,12 @@ class GameDetails:
     away_pitcher_broken_play = None
     away_pitcher_downgrade_play = None
 
-    def __init__(self, game_pk):
+    def __init__(self, game_pk, response_json=None):
         self.game_id = game_pk
-        self.set_live_game_details()
+        if response_json is None:
+            self.set_live_game_details()
+        else:
+            self.set_live_game_details(response_json=response_json)
 
     @classmethod
     def get_game_status(cls, status_obj):
@@ -39,39 +43,40 @@ class GameDetails:
             return 'P'
         return status_obj['abstractGameCode']
 
-    def set_live_game_details(self):
+    def set_live_game_details(self, response_json=None):
         request_endpoint = 'https://statsapi.mlb.com/api/v1.1/game/{game_id}/feed/live'.format(game_id=str(self.game_id))
 
         try:
-            response = util.make_request(request_endpoint)
+            if response_json is None:
+                response = util.make_request(request_endpoint)
+                if response.status_code != 200:
+                    return
+                response_json = response.json()
 
-            if response.status_code == 200:
-                response = response.json()
+            game_data = response_json['gameData']
+            status = game_data['status']
+            home_team_details = game_data['teams']['home']
+            away_team_details = game_data['teams']['away']
 
-                game_data = response['gameData']
-                status = game_data['status']
-                home_team_details = game_data['teams']['home']
-                away_team_details = game_data['teams']['away']
+            live_data = response_json['liveData']
+            boxscore = live_data['boxscore']
 
-                live_data = response['liveData']
-                boxscore = live_data['boxscore']
+            self.player_info = game_data['players']
+            self.game_status = self.get_game_status(status)
+            self.all_plays = live_data['plays']['allPlays']
 
-                self.player_info = game_data['players']
-                self.game_status = self.get_game_status(status)
-                self.all_plays = live_data['plays']['allPlays']
+            self.home_team_id = home_team_details['id']
+            self.home_team_name = home_team_details['name']
+            self.home_team_abbrv = home_team_details['abbreviation']
+            self.home_team_boxscore = boxscore['teams']['home']
+            self.away_team_boxscore = boxscore['teams']['away']
+            self.home_pitching_details = self.home_team_boxscore['teamStats']['pitching']
 
-                self.home_team_id = home_team_details['id']
-                self.home_team_name = home_team_details['name']
-                self.home_team_abbrv = home_team_details['abbreviation']
-                self.home_team_boxscore = boxscore['teams']['home']
-                self.away_team_boxscore = boxscore['teams']['away']
-                self.home_pitching_details = self.home_team_boxscore['teamStats']['pitching']
-
-                self.away_team_id = away_team_details['id']
-                self.away_team_name = away_team_details['name']
-                self.away_team_abbrv = away_team_details['abbreviation']
-                self.away_pitching_details = self.away_team_boxscore['teamStats']['pitching']
-        except (ConnectionError, requests.exceptions.RequestException) as e:
+            self.away_team_id = away_team_details['id']
+            self.away_team_name = away_team_details['name']
+            self.away_team_abbrv = away_team_details['abbreviation']
+            self.away_pitching_details = self.away_team_boxscore['teamStats']['pitching']
+        except (ConnectionError, KeyError, requests.exceptions.RequestException) as e:
             util.arodsg_ntfy(str(e))
 
     def set_broken_details(self):
