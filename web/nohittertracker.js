@@ -10,8 +10,8 @@ let unfilteredCardHtmlByGameId = {};
 let unfilteredCardOrder = [];
 const HIGHLIGHTED_GAMES_STORAGE_KEY = 'highlightedGames';
 
-// Change this if your API runs elsewhere.
-const API_BASE_URL = 'nohittertracker-test.up.railway.app:8001';
+// Default for local development. Overridden at runtime by web/config.json.
+let API_BASE_URL = 'http://127.0.0.1:8001';
 const MLB_TEAMS_API_URL = 'https://statsapi.mlb.com/api/v1/teams?sportId=1';
 
 $(document).ready(function() {
@@ -25,7 +25,13 @@ $(document).ready(function() {
     initAutoRefresh();
     updateLastUpdatedVisibility();
 
-    makeScheduleRequest(currentDateFormatted);
+    $.getJSON('config.json')
+        .done(function(cfg) {
+            if (cfg && cfg.apiBaseUrl) API_BASE_URL = cfg.apiBaseUrl;
+        })
+        .always(function() {
+            makeScheduleRequest(currentDateFormatted);
+        });
 
     $('#gamesContainer').on('mouseenter', '.startTimeTip', function() {
         const text = getTimeUntilStart($(this).data('start-time'));
