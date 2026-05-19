@@ -17,7 +17,6 @@ const MLB_TEAMS_API_URL = 'https://statsapi.mlb.com/api/v1/teams?sportId=1';
 $(document).ready(function() {
     const initialDate = getDateFromQueryParam() || new Date();
     const currentDateFormatted = getFormattedDate(initialDate);
-    applyDarkModeClasses();
     initDatePicker(currentDateFormatted);
     initDateArrows();
     initTodayButton();
@@ -206,11 +205,6 @@ function initPitcherDetailsState() {
             openPitcherDetailsGameIds.add(gameId);
         }
     });
-}
-
-function applyDarkModeClasses() {
-    $('body').addClass('darkMode');
-    $('.arrow').addClass('arrowDarkMode');
 }
 
 function initDatePicker(initialDate) {
