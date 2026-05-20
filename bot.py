@@ -5,14 +5,9 @@ import os
 import pickle
 import time
 from pathlib import Path
-
 import tweepy
 from dotenv import load_dotenv
-
 from nohittertracker import constants, util
-
-
-
 import requests
 
 class ApiEventBot:
@@ -203,10 +198,7 @@ class ApiEventBot:
 def main() -> None:
     load_dotenv()
     util.create_session()
-        SCHEDULER_INTERVAL_SECONDS = 3600  # 1 hour
-        PRE_GAME_WINDOW_MINUTES = 60  # Start 15-min checks within 60 min of first game
-        PRE_GAME_POLL_SECONDS = 900   # 15 min polling as game approaches
-        EVENT_POLL_SECONDS = 120      # 2 min polling when game is in progress or about to start
+    bot = ApiEventBot()
     bot.run_forever()
 
 
