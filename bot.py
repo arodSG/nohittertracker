@@ -43,77 +43,15 @@ class ApiEventBot:
             path = self._tweeted_events_path()
             if path.exists():
                 with open(path, 'rb') as f:
-                    while True:
-                        games = self._get_today_games()
-                        active, num_total, num_in_progress, next_start, next_minutes = self._any_game_in_progress_or_soon(games)
-                        # Check if all games are final and none are scheduled (using offset logic)
-                        if not games:
-                            util.logger.info('Scheduler check: No games scheduled today.')
-                            # Sleep until the next effective game day (after offset window passes)
-                            now = datetime.datetime.now()
-                            tomorrow = (now + datetime.timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
-                            if now.hour >= 5:
-                                # Already past offset, so next day is tomorrow at 5am
-                                sleep_seconds = (tomorrow - now).total_seconds()
-                            else:
-                                # Before 5am, so next day is today at 5am
-                                today_5am = now.replace(hour=5, minute=0, second=0, microsecond=0)
-                                sleep_seconds = (today_5am - now).total_seconds()
-                            util.logger.info(f'All games final and none scheduled. Sleeping for {int(sleep_seconds // 3600)}h {int((sleep_seconds % 3600) // 60)}m until next effective game day.')
-                            if sleep_seconds > 0:
-                                time.sleep(sleep_seconds)
-                            continue
-                        log_msg = f"Scheduler check: {num_total} games scheduled, {num_in_progress} in progress"
-                        if next_minutes is not None:
-                            if next_minutes >= 60:
-                                hours = int(next_minutes // 60)
-                                minutes = int(next_minutes % 60)
-                                if minutes > 0:
-                                    log_msg += f", next game in {hours} hours {minutes} minutes"
-                                else:
-                                    log_msg += f", next game in {hours} hours"
-                            else:
-                                log_msg += f", next game in {int(next_minutes)} minutes"
-                        util.logger.info(log_msg)
-
-                        # If a game is in progress or about to start, enter high-frequency event polling
-                        if active:
-                            util.logger.info('No-hitter event check: polling for active games/events')
-                            while True:
-                                games = self._get_today_games()
-                                active, _, num_in_progress, next_start, next_minutes = self._any_game_in_progress_or_soon(games)
-                                if not active:
-                                    util.logger.info('No active or upcoming games: returning to scheduler mode.')
-                                    break
-                                try:
-                                    self.run_once()
-                                except Exception as exc:
-                                    util.logger.error(f'Error in run_once: {exc}')
-                                time.sleep(EVENT_POLL_SECONDS)
-                        # If the next game is within the pre-game window, poll every 15 minutes
-                        elif next_minutes is not None and next_minutes <= PRE_GAME_WINDOW_MINUTES:
-                            util.logger.info(f'Pre-game window: polling every {PRE_GAME_POLL_SECONDS // 60} minutes to catch late schedule changes.')
-                            time.sleep(PRE_GAME_POLL_SECONDS)
-                        # Otherwise, poll at the top of the next hour
-                        else:
-                            now = datetime.datetime.now()
-                            next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-                            sleep_seconds = (next_hour - now).total_seconds()
-                            util.logger.info(f'No games soon. Sleeping until top of next hour ({int(sleep_seconds // 60)} min).')
-                            time.sleep(sleep_seconds)
-        try:
-            if util.ENVIRONMENT == 'prod':
-                client = self._twitter_client()
-                response = client.create_tweet(text=tweet_text)
-                tweet_url = f"https://twitter.com/NoHitterTracker/status/{response.data['id']}"
-                util.logger.info(f'Tweet sent: {tweet_url}')
-                util.arodsg_ntfy(tweet_text, tweet_url)
-            else:
-                util.logger.info(f'Test mode - would tweet: {tweet_text}')
-                util.arodsg_ntfy(f'[TEST] {tweet_text}')
-        except tweepy.TweepyException as exc:
-            util.logger.error(f'Tweet failed: {exc}')
-            util.arodsg_ntfy(f'Tweet failed: {exc}')
+                    data = pickle.load(f)
+                if isinstance(data, dict):
+                    # New format: {date_str: set(event_ids)} — keep only today
+                    self.tweeted_event_ids = set(data.get(self._today, set()))
+                elif isinstance(data, (set, list, tuple)):
+                    # Legacy flat-set format written before date-keyed format
+                    self.tweeted_event_ids = set()
+        except Exception as exc:
+            util.logger.warning(f'Failed to load tweeted event IDs: {exc}')
 
     def run_once(self, game_date: str | None = None) -> None:
         """Poll the API once and process new events."""
