@@ -16,7 +16,7 @@ import requests
 class ApiEventBot:
     """Polls the no-hitter API and sends tweets for new events, but only when games are active."""
 
-    GAME_SOON_WINDOW_MINUTES = int(os.getenv('GAME_SOON_WINDOW_MINUTES', 30))  # Consider 'soon' if within 30 min
+    GAME_SOON_WINDOW_MINUTES = int(os.getenv('GAME_SOON_WINDOW_MINUTES', 5))  # Consider 'soon' if within 5 min
 
     def __init__(self, api_base_url: str | None = None):
         self.api_base_url = api_base_url or os.getenv('API_BASE_URL', 'http://127.0.0.1:8001')
