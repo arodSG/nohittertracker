@@ -164,6 +164,7 @@ function initHighlightState() {
                 if (e.target.closest('.pitcherDetailsSummary') || e.target.closest('.pitcherDetailsPanel')) return;
                 const id = this.id;
                 if (!id) return;
+                console.log(`gamePk: ${id}`);
                 if (highlightedGameIds.has(id)) {
                     highlightedGameIds.delete(id);
                     this.classList.remove('gameHighlighted');
