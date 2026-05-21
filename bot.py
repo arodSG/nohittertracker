@@ -107,8 +107,8 @@ class ApiEventBot:
             util.logger.error(f'Tweet failed: {exc}')
             util.arodsg_ntfy(f'Tweet failed: {exc}')
 
-    def run_once(self, game_date: str | None = None) -> None:
-        """Poll the API once and process new events."""
+    def run_once(self, game_date: str | None = None) -> int:
+        """Poll the API once and process new events. Returns count of active in-progress no-hitters."""
         today = datetime.date.today().isoformat()
         if today != self._today:
             util.logger.info(f'New day detected ({self._today} -> {today}), resetting tweeted event IDs')
@@ -119,18 +119,19 @@ class ApiEventBot:
         events = payload.get('activity', {}).get('events', [])
         active_no_hitters = payload.get('entities', {}).get('active_no_hitters_by_key', {})
 
-        # Log sub-threshold no-hitters regardless of whether events exist
-        if active_no_hitters:
+        # Log sub-threshold no-hitters for games actually in progress
+        in_progress_no_hitters = {k: v for k, v in active_no_hitters.items() if v.get('is_in_progress')}
+        if in_progress_no_hitters:
             summaries = ', '.join(
                 f'[{s.get("team_name")}: isNoHitter={s.get("is_no_hitter")}, isPerfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
-                for s in active_no_hitters.values()
+                for s in in_progress_no_hitters.values()
             )
-            threshold = next(iter(active_no_hitters.values())).get('alert_threshold')
-            util.logger.info(f'{len(active_no_hitters)} active no-hitter(s) below threshold ({threshold} inn): {summaries}')
+            threshold = next(iter(in_progress_no_hitters.values())).get('alert_threshold')
+            util.logger.info(f'{len(in_progress_no_hitters)} active no-hitter(s) below threshold ({threshold} inn): {summaries}')
 
         if not events:
-            util.logger.info('No events found')
-            return
+            util.logger.info('No new events')
+            return len(in_progress_no_hitters)
 
         for event in events:
             event_id = event.get('event_id')
@@ -139,6 +140,8 @@ class ApiEventBot:
                 self._send_tweet(event)
                 self.tweeted_event_ids.add(event_id)
                 self._save_tweeted_event_ids()
+
+        return len(in_progress_no_hitters)
 
     def _get_effective_game_date(self) -> str:
         """Use the same 5-hour offset as service.py to determine the current game date."""
@@ -242,11 +245,42 @@ class ApiEventBot:
                     if not active:
                         util.logger.info('No active or upcoming games: returning to scheduler mode.')
                         break
+                    num_active_no_hitters = 1  # safe default: assume possible on error
                     try:
-                        self.run_once()
+                        num_active_no_hitters = self.run_once()
                     except Exception as exc:
                         util.logger.error(f'Error in run_once: {exc}')
-                    time.sleep(EVENT_POLL_SECONDS)
+
+                    # If in-progress games exist but none have an active no-hitter, sleep
+                    # longer instead of polling every 2 minutes pointlessly.
+                    if (
+                        num_active_no_hitters == 0
+                        and num_in_progress > 0
+                        and (next_minutes is None or next_minutes > self.GAME_SOON_WINDOW_MINUTES)
+                    ):
+                        if next_minutes is not None:
+                            wait_seconds = max(60, (next_minutes - self.GAME_SOON_WINDOW_MINUTES) * 60)
+                            sleep_seconds = min(PRE_GAME_POLL_SECONDS, wait_seconds)
+                            util.logger.info(
+                                f'No active no-hitters; {num_in_progress} game(s) in progress. '
+                                f'Next game in {int(next_minutes)} minutes. '
+                                f'Sleeping for {sleep_seconds // 60:.0f} minutes.'
+                            )
+                        else:
+                            now = datetime.datetime.now()
+                            if now.hour >= 5:
+                                next_day = (now + datetime.timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
+                            else:
+                                next_day = now.replace(hour=5, minute=0, second=0, microsecond=0)
+                            sleep_seconds = (next_day - now).total_seconds()
+                            util.logger.info(
+                                f'No active no-hitters; {num_in_progress} game(s) in progress. '
+                                f'No more games scheduled today. Sleeping for '
+                                f'{int(sleep_seconds // 3600)}h {int((sleep_seconds % 3600) // 60)}m until next effective game day.'
+                            )
+                    else:
+                        sleep_seconds = EVENT_POLL_SECONDS
+                    time.sleep(sleep_seconds)
             # Within 60 minutes of first game: poll every 15 minutes to catch late schedule changes
             elif next_minutes is not None and next_minutes <= PRE_GAME_WINDOW_MINUTES:
                 util.logger.info(f'Pre-game window: polling every {PRE_GAME_POLL_SECONDS // 60} minutes to catch late schedule changes.')
