@@ -164,11 +164,12 @@ class ApiEventBot:
         next_start = None
         for g in games:
             status = g.get('status', {})
-            code = status.get('abstractGameCode')
-            if code == 'L':
+            abstract = status.get('abstractGameCode')
+            coded = status.get('codedGameState')
+            if coded == 'I':
                 in_progress += 1
-            elif code in {'P', 'S'}:
-                # Scheduled or Pre-game: check if starting soon
+            elif abstract in {'P', 'S'} or (abstract == 'L' and coded == 'P'):
+                # Scheduled, pre-game, or warmup: check if starting soon
                 start_time = g.get('gameDate')
                 if start_time:
                     try:
