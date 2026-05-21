@@ -255,7 +255,9 @@ class ApiEventBot:
                 now = datetime.datetime.now()
                 next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
                 sleep_seconds = (next_hour - now).total_seconds()
-                util.logger.info('Sleeping for 1 hour.')
+                sleep_minutes = -(-int(sleep_seconds) // 60)  # ceiling division
+                sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
+                util.logger.info(f'Sleeping for {sleep_display}.')
                 time.sleep(sleep_seconds)
 
 
