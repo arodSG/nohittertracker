@@ -59,8 +59,8 @@ def create_session():
     session.mount('https://', HTTPAdapter(max_retries=retries))
 
 
-def make_request(url, params=None):
-    return session.get(url, params=params)
+def make_request(url, params=None, timeout=10):
+    return session.get(url, params=params, timeout=timeout)
 
 
 def arodsg_ntfy(message, click_action=None):

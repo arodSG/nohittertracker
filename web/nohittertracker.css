@@ -356,6 +356,22 @@ h1 {
     color: var(--dark-mode-white);
 }
 
+#gameDataErrorBanner {
+    margin: 0 92px 16px;
+    padding: 10px 16px;
+    background: rgba(220, 50, 50, 0.12);
+    border: 1px solid rgba(220, 50, 50, 0.45);
+    border-radius: 4px;
+    color: #c0392b;
+    font-size: 13px;
+}
+
+.darkMode #gameDataErrorBanner {
+    color: #e57373;
+    background: rgba(220, 50, 50, 0.1);
+    border-color: rgba(220, 50, 50, 0.35);
+}
+
 #gamesMessage {
     padding: 28px;
     font-style: italic;

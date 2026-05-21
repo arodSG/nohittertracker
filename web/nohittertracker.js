@@ -438,6 +438,13 @@ function makeScheduleRequest(date) {
                     });
                 }
 
+                const failedGamePks = (payload.meta || {}).failed_game_pks || [];
+                if (failedGamePks.length > 0) {
+                    $('#gameDataErrorBanner').text(`An error occurred retrieving game data: ${failedGamePks.join(', ')}`).show();
+                } else {
+                    $('#gameDataErrorBanner').hide();
+                }
+
                 if (games.length > 0) {
                     processGameInfoResults(games, events);
                     $('#gamesMessage').hide();
@@ -459,6 +466,7 @@ function makeScheduleRequest(date) {
         },
         error: function() {
             $('#loaderContainer').hide();
+            $('#gameDataErrorBanner').hide();
             $('#gamesContainer').hide();
             $('#gamesMessage').text('Error retrieving games.').show();
             scheduleRequestInFlight = false;

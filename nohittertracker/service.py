@@ -760,6 +760,7 @@ class NoHitterTracker:
         games: list[dict[str, Any]],
         active_no_hitters: list[dict[str, Any]],
         events: list[dict[str, Any]],
+        failed_game_pks: list[int],
         include_event_snapshot: bool,
         include_legacy: bool,
     ) -> dict[str, Any]:
@@ -847,6 +848,7 @@ class NoHitterTracker:
                 'generated_at': generated_at,
                 'num_games': len(game_info),
                 'num_in_progress_no_hitters': len(active_no_hitters),
+                'failed_game_pks': failed_game_pks,
             },
             'entities': {
                 'games_by_id': games_by_id,
@@ -977,6 +979,7 @@ class NoHitterTracker:
         active_no_hitters: list[dict[str, Any]] = []
         events: list[dict[str, Any]] = []
         games: list[dict[str, Any]] = []
+        failed_game_pks: list[int] = []
 
         game_ids = list(game_info.keys())
         game_results: dict[int, dict[str, Any]] = {}
@@ -999,6 +1002,8 @@ class NoHitterTracker:
                     try:
                         game_results[game_id] = futures[game_id].result()
                     except Exception as exc:
+                        util.logger.error(f'Failed to process game {game_id}: {exc}')
+                        failed_game_pks.append(game_id)
                         game_results[game_id] = {
                             'game_id': game_id,
                             'game_payload': GameFeedApiError(gamePk=game_id, error=str(exc)).to_dict() if include_game_feed else None,
@@ -1025,6 +1030,7 @@ class NoHitterTracker:
             games=games,
             active_no_hitters=active_no_hitters,
             events=events,
+            failed_game_pks=failed_game_pks,
             include_event_snapshot=include_event_snapshot,
             include_legacy=include_legacy,
         )
