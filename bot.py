@@ -259,13 +259,23 @@ class ApiEventBot:
                         and (next_minutes is None or next_minutes > self.GAME_SOON_WINDOW_MINUTES)
                     ):
                         if next_minutes is not None:
-                            wait_seconds = max(60, (next_minutes - self.GAME_SOON_WINDOW_MINUTES) * 60)
-                            sleep_seconds = min(PRE_GAME_POLL_SECONDS, wait_seconds)
-                            util.logger.info(
-                                f'No active no-hitters; {num_in_progress} game(s) in progress. '
-                                f'Next game in {int(next_minutes)} minutes. '
-                                f'Sleeping for {sleep_seconds // 60:.0f} minutes.'
-                            )
+                            if next_minutes > PRE_GAME_WINDOW_MINUTES:
+                                now = datetime.datetime.now()
+                                next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+                                sleep_seconds = (next_hour - now).total_seconds()
+                                sleep_minutes = -(-int(sleep_seconds) // 60)
+                                sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
+                                util.logger.info(
+                                    f'No active no-hitters; {num_in_progress} game(s) in progress. '
+                                    f'Next game in {int(next_minutes)} minutes. Sleeping for {sleep_display}.'
+                                )
+                            else:
+                                sleep_seconds = PRE_GAME_POLL_SECONDS
+                                util.logger.info(
+                                    f'No active no-hitters; {num_in_progress} game(s) in progress. '
+                                    f'Next game in {int(next_minutes)} minutes. '
+                                    f'Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
+                                )
                         else:
                             now = datetime.datetime.now()
                             if now.hour >= 5:
