@@ -68,8 +68,8 @@ class ApiEventBot:
             access_token_secret=os.getenv('TWITTER_ACCESS_TOKEN_SECRET'),
         )
 
-    def _fetch_events(self, game_date: str | None = None) -> list[dict]:
-        """Fetch events from the API."""
+    def _fetch_events(self, game_date: str | None = None) -> dict:
+        """Fetch the full no-hitter API payload."""
         params = {
             'include_events': True,
             'include_event_snapshot': True,
@@ -80,13 +80,12 @@ class ApiEventBot:
         try:
             response = util.session.get(f'{self.api_base_url}/api/no-hitters', params=params)
             if response.status_code == 200:
-                payload = response.json()
-                return payload.get('activity', {}).get('events', [])
+                return response.json()
         except Exception as exc:
             util.logger.error(f'Failed to fetch events: {exc}')
             util.arodsg_ntfy(f'Bot: Failed to fetch events: {exc}')
 
-        return []
+        return {}
 
     def _send_tweet(self, event: dict) -> None:
         """Send a tweet for an event."""
@@ -116,7 +115,19 @@ class ApiEventBot:
             self._today = today
             self.tweeted_event_ids = set()
 
-        events = self._fetch_events(game_date)
+        payload = self._fetch_events(game_date)
+        events = payload.get('activity', {}).get('events', [])
+        active_no_hitters = payload.get('entities', {}).get('active_no_hitters_by_key', {})
+
+        # Log sub-threshold no-hitters regardless of whether events exist
+        if active_no_hitters:
+            summaries = ', '.join(
+                f'[{s.get("team_name")}: isNoHitter={s.get("is_no_hitter")}, isPerfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
+                for s in active_no_hitters.values()
+            )
+            threshold = next(iter(active_no_hitters.values())).get('alert_threshold')
+            util.logger.info(f'{len(active_no_hitters)} active no-hitter(s) below threshold ({threshold} inn): {summaries}')
+
         if not events:
             util.logger.info('No events found')
             return
