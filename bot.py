@@ -205,15 +205,16 @@ class ApiEventBot:
             games = self._get_today_games()
             active, num_total, num_in_progress, next_start, next_minutes = self._any_game_in_progress_or_soon(games)
 
-            # All games final and none scheduled for the effective day: sleep until next effective game day (5am offset)
-            if not games:
+            # No games scheduled, or all games are final: sleep until next effective game day (5am offset)
+            if not games or (not active and next_minutes is None):
                 now = datetime.datetime.now()
                 if now.hour >= 5:
                     next_day = (now + datetime.timedelta(days=1)).replace(hour=5, minute=0, second=0, microsecond=0)
                 else:
                     next_day = now.replace(hour=5, minute=0, second=0, microsecond=0)
                 sleep_seconds = (next_day - now).total_seconds()
-                util.logger.info(f'All games final and none scheduled. Sleeping for {int(sleep_seconds // 3600)}h {int((sleep_seconds % 3600) // 60)}m until next effective game day.')
+                reason = 'No games scheduled' if not games else 'All games final'
+                util.logger.info(f'{reason}. Sleeping for {int(sleep_seconds // 3600)}h {int((sleep_seconds % 3600) // 60)}m until next effective game day.')
                 if sleep_seconds > 0:
                     time.sleep(sleep_seconds)
                 continue
@@ -254,7 +255,7 @@ class ApiEventBot:
                 now = datetime.datetime.now()
                 next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
                 sleep_seconds = (next_hour - now).total_seconds()
-                util.logger.info(f'No games soon. Sleeping until top of next hour ({int(sleep_seconds // 60)} min).')
+                util.logger.info('Sleeping for 1 hour.')
                 time.sleep(sleep_seconds)
 
 
