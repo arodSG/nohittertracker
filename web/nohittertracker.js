@@ -499,7 +499,7 @@ function processGameInfoResults(gameInfoResults, events) {
         const gameStatus = getGameStatus(gameData.status);
         const isGameInProgress = gameStatus === 'I';
         const isGameFinal = gameStatus === 'F';
-        const isGameStatusSpecial = ['PPD', 'IR'].includes(gameData.status.statusCode);
+        const isGameStatusSpecial = ['PPD', 'IR', 'DR', 'DO', 'DS'].includes(gameData.status.statusCode);
         const gameStatusDetailed = gameData.status.detailedState === 'Game Over' ? 'Final' : gameData.status.detailedState;
         const currentInning = linescore.currentInning;
         const isTopInning = linescore.isTopInning;
