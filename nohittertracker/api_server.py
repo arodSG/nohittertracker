@@ -29,7 +29,10 @@ class NoHitterAPIHandler(BaseHTTPRequestHandler):
         self.send_response(status.value)
         self._set_common_headers(len(body))
         self.end_headers()
-        self.wfile.write(body)
+        try:
+            self.wfile.write(body)
+        except (BrokenPipeError, ConnectionResetError):
+            pass
 
     def do_OPTIONS(self) -> None:
         self.send_response(HTTPStatus.NO_CONTENT.value)
