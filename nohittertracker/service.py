@@ -3,6 +3,7 @@ from __future__ import annotations
 import os
 from concurrent.futures import ThreadPoolExecutor
 from datetime import datetime, timedelta, timezone
+import threading
 from threading import Lock
 import time
 from typing import Any
@@ -100,6 +101,19 @@ class NoHitterTracker:
             if self._session_pool_size != pool_size:
                 self._set_session_pool_size(pool_size)
 
+    def _start_cache_pruner(self) -> None:
+        """Start a background daemon thread that prunes expired cache entries every 60 seconds."""
+        def _prune_loop() -> None:
+            while True:
+                time.sleep(60)
+                now = time.monotonic()
+                with self._game_feed_cache_lock:
+                    self._prune_expired_cache_entries(self._game_feed_cache, now)
+                with self._schedule_cache_lock:
+                    self._prune_expired_cache_entries(self._schedule_cache, now)
+        t = threading.Thread(target=_prune_loop, daemon=True, name='cache-pruner')
+        t.start()
+
     def initialize(self) -> None:
         with self._initialize_lock:
             if not self._config_loaded:
@@ -110,6 +124,7 @@ class NoHitterTracker:
                 util.create_session()
                 self._set_session_pool_size(1)
                 self._session_ready = True
+                self._start_cache_pruner()
 
     def default_game_date(self) -> str:
         return (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
@@ -619,7 +634,7 @@ class NoHitterTracker:
 
     @staticmethod
     def _game_feed_final_cache_ttl_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_FINAL_CACHE_TTL_SECONDS', 21600.0)
+        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_FINAL_CACHE_TTL_SECONDS', 300.0)
 
     @staticmethod
     def _game_feed_scheduled_cache_ttl_seconds() -> float:
