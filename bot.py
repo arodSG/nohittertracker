@@ -143,6 +143,16 @@ class ApiEventBot:
 
         return len(in_progress_no_hitters)
 
+    @staticmethod
+    def _format_minutes(minutes: float) -> str:
+        """Format a duration as 'X hour(s) Y minute(s)' with correct plurality."""
+        h, m = divmod(int(minutes), 60)
+        if h > 0 and m > 0:
+            return f'{h} {"hour" if h == 1 else "hours"} {m} {"minute" if m == 1 else "minutes"}'
+        elif h > 0:
+            return f'{h} {"hour" if h == 1 else "hours"}'
+        return f'{int(minutes)} {"minute" if int(minutes) == 1 else "minutes"}'
+
     def _get_effective_game_date(self) -> str:
         """Use the same 5-hour offset as service.py to determine the current game date."""
         return (datetime.datetime.now() - datetime.timedelta(hours=5)).strftime('%m/%d/%Y')
@@ -225,15 +235,7 @@ class ApiEventBot:
 
             log_msg = f'Scheduler check: {num_total} games scheduled, {num_in_progress} in progress'
             if next_minutes is not None:
-                if next_minutes >= 60:
-                    hours = int(next_minutes // 60)
-                    minutes = int(next_minutes % 60)
-                    if minutes > 0:
-                        log_msg += f', next game in {hours} hours {minutes} minutes'
-                    else:
-                        log_msg += f', next game in {hours} hours'
-                else:
-                    log_msg += f', next game in {int(next_minutes)} minutes'
+                log_msg += f', next game in {self._format_minutes(next_minutes)}'
             util.logger.info(log_msg)
 
             # If a game is in progress or about to start, enter high-frequency event polling
@@ -267,13 +269,13 @@ class ApiEventBot:
                                 sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
                                 util.logger.info(
                                     f'No active no-hitters; {num_in_progress} game(s) in progress. '
-                                    f'Next game in {int(next_minutes)} minutes. Sleeping for {sleep_display}.'
+                                    f'Next game in {self._format_minutes(next_minutes)}. Sleeping for {sleep_display}.'
                                 )
                             else:
                                 sleep_seconds = PRE_GAME_POLL_SECONDS
                                 util.logger.info(
                                     f'No active no-hitters; {num_in_progress} game(s) in progress. '
-                                    f'Next game in {int(next_minutes)} minutes. '
+                                    f'Next game in {self._format_minutes(next_minutes)}. '
                                     f'Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
                                 )
                         else:
