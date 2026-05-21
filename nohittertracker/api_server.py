@@ -66,7 +66,6 @@ class NoHitterAPIHandler(BaseHTTPRequestHandler):
 
         result = self.server.tracker.scan(
             game_date=game_date,
-            persist_state=False,
             include_game_feed=include_games,
             include_all_plays=include_all_plays,
             include_event_snapshot=include_event_snapshot,

@@ -42,7 +42,6 @@ from .models import (
     TrackerEvent,
     TeamSnapshot,
 )
-from .state import TrackerStateStore
 
 
 def get_game_info_by_date(date: str) -> dict[int, dict[str, Any]]:
@@ -73,9 +72,8 @@ def get_game_info_by_date(date: str) -> dict[int, dict[str, Any]]:
 
 
 class NoHitterTracker:
-    def __init__(self, *, config_path: str = constants.CONFIG_FILE_PATH, state_store: TrackerStateStore | None = None):
+    def __init__(self, *, config_path: str = constants.CONFIG_FILE_PATH):
         self.config_path = config_path
-        self.state_store = state_store or TrackerStateStore()
         self._initialize_lock = Lock()
         self._schedule_cache_lock = Lock()
         self._game_feed_cache_lock = Lock()
@@ -966,7 +964,6 @@ class NoHitterTracker:
         self,
         *,
         game_date: str | None = None,
-        persist_state: bool = False,
         include_game_feed: bool = False,
         include_all_plays: bool = False,
         include_event_snapshot: bool = False,
@@ -974,7 +971,6 @@ class NoHitterTracker:
     ) -> dict[str, Any]:
         self.initialize()
         game_date = game_date or self.default_game_date()
-        team_state = self.state_store.get_daily_state(game_date, persist=persist_state)
         game_info = self._get_game_info_by_date_cached(game_date)
         pool_size = self._pool_size_for_num_games(len(game_info))
         self._ensure_session_pool_size(pool_size)
