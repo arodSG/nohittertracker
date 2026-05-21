@@ -32,6 +32,12 @@ $(document).ready(function() {
             makeScheduleRequest(currentDateFormatted);
         });
 
+    $('#gamesContainer').on('click.gameCardLog', '.gameContainer', function(e) {
+        if (e.target.closest('.pitcherDetailsSummary') || e.target.closest('.pitcherDetailsPanel')) return;
+        const id = this.id;
+        if (id) console.log(`gamePk: ${id}`);
+    });
+
     $('#gamesContainer').on('mouseenter', '.startTimeTip', function() {
         const text = getTimeUntilStart($(this).data('start-time'));
         if (text) {
@@ -164,7 +170,6 @@ function initHighlightState() {
                 if (e.target.closest('.pitcherDetailsSummary') || e.target.closest('.pitcherDetailsPanel')) return;
                 const id = this.id;
                 if (!id) return;
-                console.log(`gamePk: ${id}`);
                 if (highlightedGameIds.has(id)) {
                     highlightedGameIds.delete(id);
                     this.classList.remove('gameHighlighted');
