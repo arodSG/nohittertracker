@@ -203,97 +203,115 @@ class ApiEventBot:
         return (in_progress > 0 or soon, len(games), in_progress, soon_str, soon_minutes)
 
     def run_forever(self) -> None:
-        """Adaptive scheduler loop:
-        - Polls at the top of every hour when no games are near.
-        - Polls every 15 minutes when within 60 minutes of the first game.
-        - Polls every 2 minutes when games are in progress or about to start.
-        - Stops polling for the rest of the effective day when all games are final.
+        """Unified adaptive scheduler loop.
+
+        The same three-tier sleep logic applies in all phases:
+          - 2 min  : active no-hitter, game about to start, or new game just entered in-progress
+          - 15 min : within 60 minutes of the next scheduled game (or no more games today but still in progress)
+          - 1 hour : no games active/near (or all in-progress no-hitters broken with next game > 60 min)
+
+        Additionally sleeps until 8am EST when all games are final or none are scheduled.
         """
-        SCHEDULER_INTERVAL_SECONDS = 3600  # 1 hour, aligned to top of hour
-        PRE_GAME_WINDOW_MINUTES = 60        # Start 15-min checks within 60 min of first game
-        PRE_GAME_POLL_SECONDS = 900         # 15 min polling as game approaches
-        EVENT_POLL_SECONDS = 120            # 2 min polling when game is in progress or about to start
-        util.logger.info('Bot started in adaptive scheduler mode. Hourly checks -> 15-min pre-game -> 2-min event polling.')
+        PRE_GAME_WINDOW_MINUTES = 60
+        PRE_GAME_POLL_SECONDS = 900
+        EVENT_POLL_SECONDS = 120
+        util.logger.info('Bot started. Adaptive scheduler: hourly → 15-min → 2-min event polling.')
 
         while True:
             games = self._get_today_games()
             active, num_total, num_in_progress, next_start, next_minutes = self._any_game_in_progress_or_soon(games)
 
-            # No games scheduled, or all games are final: sleep until 8am EST (13:00 UTC)
-            # next effective game day. The effective game day uses a UTC-5 offset, so
-            # 8am EST = 13:00 UTC. Using a fixed UTC hour keeps this consistent with
-            # the effective date logic regardless of DST.
+            # ── All games final / no games scheduled ──────────────────────────────
             if not games or (not active and next_minutes is None):
                 now = datetime.datetime.now()
                 if now.hour >= 13:
-                    next_day = (now + datetime.timedelta(days=1)).replace(hour=13, minute=0, second=0, microsecond=0)
+                    resume = (now + datetime.timedelta(days=1)).replace(hour=13, minute=0, second=0, microsecond=0)
                 else:
-                    next_day = now.replace(hour=13, minute=0, second=0, microsecond=0)
-                sleep_seconds = (next_day - now).total_seconds()
+                    resume = now.replace(hour=13, minute=0, second=0, microsecond=0)
+                sleep_seconds = (resume - now).total_seconds()
                 reason = 'No games scheduled' if not games else 'All games final'
-                util.logger.info(f'{reason}. Sleeping for {int(sleep_seconds // 3600)}h {int((sleep_seconds % 3600) // 60)}m until 8am EST next effective game day.')
+                util.logger.info(
+                    f'{reason}. Sleeping for {int(sleep_seconds // 3600)}h '
+                    f'{int((sleep_seconds % 3600) // 60)}m until 8am EST next effective game day.'
+                )
+                self._known_in_progress_pks = set()
                 if sleep_seconds > 0:
                     time.sleep(sleep_seconds)
                 continue
 
-            log_msg = f'Scheduler check: {num_total} games scheduled, {num_in_progress} in progress'
-            if next_minutes is not None:
-                log_msg += f', next game in {self._format_minutes(next_minutes)}'
-            util.logger.info(log_msg)
-
-            # If a game is in progress or about to start, enter high-frequency event polling
-            if active:
-                util.logger.info('No-hitter event check: polling for active games/events')
-                while True:
-                    games = self._get_today_games()
-                    active, _, num_in_progress, next_start, next_minutes = self._any_game_in_progress_or_soon(games)
-                    if not active:
-                        util.logger.info('No active or upcoming games: returning to scheduler mode.')
-                        break
-                    num_active_no_hitters = 1  # safe default: assume possible on error
-                    try:
-                        num_active_no_hitters = self.run_once()
-                    except Exception as exc:
-                        util.logger.error(f'Error in run_once: {exc}')
-
-                    # If in-progress games exist but none have an active no-hitter, sleep
-                    # longer instead of polling every 2 minutes pointlessly.
-                    # Cap at PRE_GAME_POLL_SECONDS when games are in progress — sleeping
-                    # to the top of the hour risks missing a no-hitter that develops in a
-                    # game whose all_plays list was momentarily empty at the last check.
-                    if (
-                        num_active_no_hitters == 0
-                        and num_in_progress > 0
-                        and (next_minutes is None or next_minutes > self.GAME_SOON_WINDOW_MINUTES)
-                    ):
-                        sleep_seconds = PRE_GAME_POLL_SECONDS
-                        if next_minutes is not None:
-                            util.logger.info(
-                                f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
-                                f'Next game in {self._format_minutes(next_minutes)}. '
-                                f'Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
-                            )
-                        else:
-                            util.logger.info(
-                                f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
-                                f'No more games scheduled today. Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
-                            )
-                    else:
-                        sleep_seconds = EVENT_POLL_SECONDS
+            # ── No games active or starting very soon: pre-game dormant ───────────
+            if not active:
+                self._known_in_progress_pks = set()
+                if next_minutes is not None and next_minutes <= PRE_GAME_WINDOW_MINUTES:
+                    util.logger.info(
+                        f'Pre-game: next game in {self._format_minutes(next_minutes)}. '
+                        f'Polling every {PRE_GAME_POLL_SECONDS // 60} minutes.'
+                    )
+                    time.sleep(PRE_GAME_POLL_SECONDS)
+                else:
+                    now = datetime.datetime.now()
+                    next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
+                    sleep_seconds = max(0, (next_hour - now).total_seconds())
+                    sleep_minutes = -(-int(sleep_seconds) // 60)
+                    sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
+                    suffix = f'next game in {self._format_minutes(next_minutes)}' if next_minutes is not None else 'no games today'
+                    util.logger.info(f'Dormant ({suffix}). Sleeping for {sleep_display}.')
                     time.sleep(sleep_seconds)
-            # Within 60 minutes of first game: poll every 15 minutes to catch late schedule changes
-            elif next_minutes is not None and next_minutes <= PRE_GAME_WINDOW_MINUTES:
-                util.logger.info(f'Pre-game window: polling every {PRE_GAME_POLL_SECONDS // 60} minutes to catch late schedule changes.')
-                time.sleep(PRE_GAME_POLL_SECONDS)
-            # Otherwise: sleep until the top of the next hour
-            else:
+                continue
+
+            # ── Active: game in progress or starting very soon ────────────────────
+            # Track newly-in-progress game PKs. A game that just transitioned to
+            # codedGameState='I' may have all_plays=[] for a brief moment, making it
+            # invisible to the no-hitter tracker. Use 2-min polling for one cycle to
+            # confirm its status before allowing longer dormant sleeps.
+            current_in_progress_pks = {
+                g['gamePk'] for g in games
+                if g.get('status', {}).get('codedGameState') == 'I'
+            }
+            new_in_progress_pks = current_in_progress_pks - self._known_in_progress_pks
+            self._known_in_progress_pks = current_in_progress_pks
+
+            num_active_no_hitters = 1  # safe default on error
+            try:
+                num_active_no_hitters = self.run_once()
+            except Exception as exc:
+                util.logger.error(f'Error in run_once: {exc}')
+
+            # Apply the same three-tier logic as pre-game dormant above.
+            # Force 2-min if there's an active no-hitter, a game just entered
+            # in-progress, or the next scheduled game is about to start.
+            dormant = (
+                num_active_no_hitters == 0
+                and not new_in_progress_pks
+                and (next_minutes is None or next_minutes > self.GAME_SOON_WINDOW_MINUTES)
+            )
+            if not dormant:
+                sleep_seconds = EVENT_POLL_SECONDS
+            elif next_minutes is not None and next_minutes > PRE_GAME_WINDOW_MINUTES:
                 now = datetime.datetime.now()
                 next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
-                sleep_seconds = (next_hour - now).total_seconds()
-                sleep_minutes = -(-int(sleep_seconds) // 60)  # ceiling division
+                sleep_seconds = max(0, (next_hour - now).total_seconds())
+                sleep_minutes = -(-int(sleep_seconds) // 60)
                 sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
-                util.logger.info(f'Sleeping for {sleep_display}.')
-                time.sleep(sleep_seconds)
+                util.logger.info(
+                    f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
+                    f'Next game in {self._format_minutes(next_minutes)}. Sleeping for {sleep_display}.'
+                )
+            else:
+                sleep_seconds = PRE_GAME_POLL_SECONDS
+                if next_minutes is not None:
+                    util.logger.info(
+                        f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
+                        f'Next game in {self._format_minutes(next_minutes)}. '
+                        f'Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
+                    )
+                else:
+                    util.logger.info(
+                        f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
+                        f'No more games scheduled today. Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
+                    )
+
+            time.sleep(sleep_seconds)
 
 
 def main() -> None:
