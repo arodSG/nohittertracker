@@ -234,14 +234,12 @@ class ApiEventBot:
                     f'{reason}. Sleeping for {int(sleep_seconds // 3600)}h '
                     f'{int((sleep_seconds % 3600) // 60)}m until 8am EST next effective game day.'
                 )
-                self._known_in_progress_pks = set()
                 if sleep_seconds > 0:
                     time.sleep(sleep_seconds)
                 continue
 
             # ── No games active or starting very soon: pre-game dormant ───────────
             if not active:
-                self._known_in_progress_pks = set()
                 if next_minutes is not None and next_minutes <= PRE_GAME_WINDOW_MINUTES:
                     util.logger.info(
                         f'Pre-game: next game in {self._format_minutes(next_minutes)}. '
@@ -260,17 +258,6 @@ class ApiEventBot:
                 continue
 
             # ── Active: game in progress or starting very soon ────────────────────
-            # Track newly-in-progress game PKs. A game that just transitioned to
-            # codedGameState='I' may have all_plays=[] for a brief moment, making it
-            # invisible to the no-hitter tracker. Use 2-min polling for one cycle to
-            # confirm its status before allowing longer dormant sleeps.
-            current_in_progress_pks = {
-                g['gamePk'] for g in games
-                if g.get('status', {}).get('codedGameState') == 'I'
-            }
-            new_in_progress_pks = current_in_progress_pks - self._known_in_progress_pks
-            self._known_in_progress_pks = current_in_progress_pks
-
             num_active_no_hitters = 1  # safe default on error
             try:
                 num_active_no_hitters = self.run_once()
@@ -278,11 +265,8 @@ class ApiEventBot:
                 util.logger.error(f'Error in run_once: {exc}')
 
             # Apply the same three-tier logic as pre-game dormant above.
-            # Force 2-min if there's an active no-hitter, a game just entered
-            # in-progress, or the next scheduled game is about to start.
             dormant = (
                 num_active_no_hitters == 0
-                and not new_in_progress_pks
                 and (next_minutes is None or next_minutes > self.GAME_SOON_WINDOW_MINUTES)
             )
             if not dormant:
