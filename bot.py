@@ -283,17 +283,25 @@ class ApiEventBot:
                     f'Next game in {self._format_minutes(next_minutes)}. Sleeping for {sleep_display}.'
                 )
             else:
-                sleep_seconds = PRE_GAME_POLL_SECONDS
                 if next_minutes is not None:
+                    sleep_seconds = PRE_GAME_POLL_SECONDS
                     util.logger.info(
                         f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
                         f'Next game in {self._format_minutes(next_minutes)}. '
                         f'Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
                     )
                 else:
+                    now_utc = datetime.datetime.now(datetime.timezone.utc)
+                    resume = now_utc.replace(hour=10, minute=0, second=0, microsecond=0)
+                    if resume <= now_utc:
+                        resume += datetime.timedelta(days=1)
+                    sleep_seconds = (resume - now_utc).total_seconds()
+                    sleep_hours = int(sleep_seconds // 3600)
+                    sleep_mins = int((sleep_seconds % 3600) // 60)
+                    sleep_display = f'{sleep_hours}h {sleep_mins}m' if sleep_hours > 0 else f'{sleep_mins} minutes'
                     util.logger.info(
                         f'No active no-hitters; {num_in_progress} {"game" if num_in_progress == 1 else "games"} in progress. '
-                        f'No more games scheduled today. Sleeping for {PRE_GAME_POLL_SECONDS // 60} minutes.'
+                        f'No more games scheduled today. Sleeping {sleep_display} until effective game day ends (5am CDT).'
                     )
 
             time.sleep(sleep_seconds)
