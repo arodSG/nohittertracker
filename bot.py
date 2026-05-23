@@ -133,9 +133,27 @@ class ApiEventBot:
             util.logger.info('No new events')
             return len(in_progress_no_hitters)
 
+        # Build the set of (game_id, team_id) pairs that already have a terminal event
+        # in this batch so we can suppress stale active-alert events for them.
+        terminal_pairs = {
+            (e.get('game_id'), e.get('team_id'))
+            for e in events
+            if e.get('event_type') in ('no_hitter_broken', 'perfect_game_downgrade')
+        }
+
         for event in events:
             event_id = event.get('event_id')
             if event_id and event_id not in self.tweeted_event_ids:
+                # Skip an active (non-final) update alert when the no-hitter is already
+                # broken/downgraded in the same response — e.g. on a fresh deploy.
+                if (event.get('event_type') == 'no_hitter_update'
+                        and not event.get('is_finished')
+                        and (event.get('game_id'), event.get('team_id')) in terminal_pairs):
+                    util.logger.info(f'Skipping stale active alert {event_id} — terminal event already present')
+                    self.tweeted_event_ids.add(event_id)
+                    self._save_tweeted_event_ids()
+                    continue
+
                 util.logger.info(f'Processing new event: {event_id}')
                 self._send_tweet(event)
                 self.tweeted_event_ids.add(event_id)
