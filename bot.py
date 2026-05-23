@@ -204,6 +204,39 @@ class ApiEventBot:
             soon_str = next_start.strftime('%H:%M UTC')
         return (in_progress > 0 or soon, len(games), in_progress, soon_str, soon_minutes)
 
+    def _is_mlb_season_over(self) -> bool:
+        """Return True if today is past the current MLB season end date.
+
+        Tries the current calendar year first. If the season hasn't started yet
+        (e.g. January before opening day), falls back to the previous year so the
+        offseason between seasons is correctly identified as 'over'.
+        """
+        today = datetime.date.today()
+        for year in (today.year, today.year - 1):
+            try:
+                resp = requests.get(
+                    f'https://statsapi.mlb.com/api/v1/seasons/{year}',
+                    params={'sportId': 1},
+                    timeout=10,
+                )
+                if resp.status_code != 200:
+                    continue
+                seasons = resp.json().get('seasons', [])
+                if not seasons:
+                    continue
+                season = seasons[0]
+                start_str = season.get('regularSeasonStartDate')
+                end_str = season.get('seasonEndDate')
+                if not start_str or not end_str:
+                    continue
+                if today < datetime.date.fromisoformat(start_str):
+                    # This season hasn't started yet — check the previous year instead
+                    continue
+                return today > datetime.date.fromisoformat(end_str)
+            except Exception as exc:
+                util.logger.warning(f'Failed to check MLB {year} season dates: {exc}')
+        return False
+
     def run_forever(self) -> None:
         """Unified adaptive scheduler loop.
 
@@ -225,6 +258,10 @@ class ApiEventBot:
 
             # ── All games final / no games scheduled ──────────────────────────────
             if not games or (not active and next_minutes is None):
+                if not games and self._is_mlb_season_over():
+                    util.logger.info('MLB season has ended and no games are scheduled. Shutting down.')
+                    util.arodsg_ntfy('Bot: MLB season over — shutting down.')
+                    return
                 now = datetime.datetime.now()
                 if now.hour >= 13:
                     resume = (now + datetime.timedelta(days=1)).replace(hour=13, minute=0, second=0, microsecond=0)
