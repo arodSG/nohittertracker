@@ -34,8 +34,12 @@ class GameDetails:
         else:
             self.set_live_game_details(response_json=response_json)
 
+    _SPECIAL_STATUSES = frozenset({'PPD', 'DR', 'DI', 'DO', 'DS', 'IR'})
+
     @classmethod
     def get_game_status(cls, status_obj):
+        if status_obj.get('statusCode') in cls._SPECIAL_STATUSES:
+            return status_obj['statusCode']
         game_code_live = status_obj['abstractGameCode'] == 'L'
         if game_code_live and status_obj['codedGameState'] == 'I':
             return 'I'

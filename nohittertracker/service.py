@@ -204,6 +204,7 @@ class NoHitterTracker:
         *,
         include_all_plays: bool,
         response_json: dict[str, Any],
+        schedule_status_detailed: str | None = None,
     ) -> dict[str, Any]:
         game_data = response_json.get('gameData', {})
         live_data = response_json.get('liveData', {})
@@ -229,6 +230,13 @@ class NoHitterTracker:
         datetime_info = game_data.get('datetime', {})
 
         def status_payload(status_data: dict[str, Any]) -> GameStatus:
+            if game_status in GameDetails._SPECIAL_STATUSES:
+                return GameStatus(
+                    abstractGameCode=status_data.get('abstractGameCode'),
+                    codedGameState=status_data.get('codedGameState'),
+                    statusCode=game_status,
+                    detailedState=schedule_status_detailed or status_data.get('detailedState'),
+                )
             return GameStatus(
                 abstractGameCode=status_data.get('abstractGameCode'),
                 codedGameState=status_data.get('codedGameState'),
@@ -647,7 +655,7 @@ class NoHitterTracker:
         return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_NEAR_START_WINDOW_SECONDS', 1800.0)
 
     def _game_feed_cache_ttl_seconds(self, game_status: str, game_start_time: str | None) -> float:
-        if game_status == 'F':
+        if game_status in {'F'} | GameDetails._SPECIAL_STATUSES:
             return self._game_feed_final_cache_ttl_seconds()
 
         if game_status in {'S', 'P'}:
@@ -915,6 +923,7 @@ class NoHitterTracker:
                         game_status,
                         include_all_plays=include_all_plays,
                         response_json=game_feed_response,
+                        schedule_status_detailed=current_game_info.get('status_detailed'),
                     )
             except Exception as exc:
                 if include_game_feed:

@@ -511,9 +511,10 @@ function processGameInfoResults(gameInfoResults, events) {
         const linescore = liveData.linescore;
 
         const gameStatus = getGameStatus(gameData.status);
-        const isGameInProgress = gameStatus === 'I';
-        const isGameFinal = gameStatus === 'F';
         const isGameStatusSpecial = ['PPD', 'IR', 'DR', 'DO', 'DS'].includes(gameData.status.statusCode);
+        const isPostponed = isGameStatusSpecial;
+        const isGameInProgress = gameStatus === 'I' && !isPostponed;
+        const isGameFinal = gameStatus === 'F';
         const gameStatusDetailed = gameData.status.detailedState === 'Game Over' ? 'Final' : gameData.status.detailedState;
         const currentInning = linescore.currentInning;
         const isTopInning = linescore.isTopInning;
@@ -607,11 +608,11 @@ function processGameInfoResults(gameInfoResults, events) {
         const homeTeamId = gameData.teams.home.id;
         const awayTeamId = gameData.teams.away.id;
 
-        const homeTeamNoHitterStatus = flags.homeTeamNoHitterStatus || 'none';
+        const homeTeamNoHitterStatus = (isGameInProgress || isGameFinal) ? (flags.homeTeamNoHitterStatus || 'none') : 'none';
         const homeTeamNoHitterParams = { isGameFinal, noHitterStatus: homeTeamNoHitterStatus, numPitchers: homeTeamNumPitchers, pitcherName: homeTeamPitcherName, playerTeamName: homeTeamName, playerTeamAbbreviation: homeTeamAbbrv, opposingTeamName: awayTeamName };
         const homeTeamNoHitterHtml = buildNoHitterHtml(homeTeamNoHitterParams);
 
-        const awayTeamNoHitterStatus = flags.awayTeamNoHitterStatus || 'none';
+        const awayTeamNoHitterStatus = (isGameInProgress || isGameFinal) ? (flags.awayTeamNoHitterStatus || 'none') : 'none';
         const awayTeamNoHitterParams = { isGameFinal, noHitterStatus: awayTeamNoHitterStatus, numPitchers: awayTeamNumPitchers, pitcherName: awayTeamPitcherName, playerTeamName: awayTeamName, playerTeamAbbreviation: awayTeamAbbrv, opposingTeamName: homeTeamName };
         const awayTeamNoHitterHtml = buildNoHitterHtml(awayTeamNoHitterParams);
 
@@ -667,7 +668,7 @@ function processGameInfoResults(gameInfoResults, events) {
         const ballsStrikesOutsHtml = isGameInProgress ? `<p class="ballsStrikesOuts"><span class="ballsStrikesLine">${numBalls}-${numStrikes}</span><span class="outsLine">${numOuts} ${outsLabel}</span></p>` : '';
         const inningState = isGameInProgress ? `${isTopInning ? 'Top' : 'Bot'} ${currentInning}` : gameStatusDetailed;
         const metaStatusText = isGameStatusSpecial ? gameStatusDetailed : inningState;
-        const showStartTime = !isGameInProgress && !isGameFinal;
+        const showStartTime = !isGameInProgress && !isGameFinal && !isPostponed;
         const timeDisplay = (showStartTime && isSelectedDateToday())
             ? `<span class="startTimeTip" data-start-time="${gameData.datetime.dateTime}">${time}</span>`
             : time;
@@ -686,7 +687,7 @@ function processGameInfoResults(gameInfoResults, events) {
                 `;
 
         const cardHtml = `
-            <div id="${gameId}" class="gameContainer ${(homeTeamNoHitterStatus !== 'none' || awayTeamNoHitterStatus !== 'none') ? 'noHitterBackground' : ''}" data-in-progress="${isGameInProgress}" data-final="${isGameFinal}">
+            <div id="${gameId}" class="gameContainer ${(homeTeamNoHitterStatus !== 'none' || awayTeamNoHitterStatus !== 'none') ? 'noHitterBackground' : ''}" data-in-progress="${isGameInProgress}" data-final="${isGameFinal}" data-postponed="${isPostponed}">
                 <div class="gameHeadingRow">
                     <h3 class="gameHeading"><span class="awayTeamName">${awayTeamName}</span> @ <span class="homeTeamName">${homeTeamName}</span></h3>
                     <p class="gameMeta${isGameStatusSpecial ? ' redTextColor' : ''}">${gameMetaText}</p>
@@ -830,6 +831,7 @@ function updateCardInPlace($card, newHtml) {
     $card.toggleClass('noHitterBackground', $new.hasClass('noHitterBackground'));
     $card.attr('data-in-progress', $new.attr('data-in-progress'));
     $card.attr('data-final', $new.attr('data-final'));
+    $card.attr('data-postponed', $new.attr('data-postponed'));
 
     // Game status / time line (class may also change for redTextColor)
     const $newMeta = $new.find('.gameMeta');
@@ -907,6 +909,7 @@ function sortGames() {
         const $el = $(el);
         const isInProgress = $el.attr('data-in-progress') === 'true';
         const isFinal = $el.attr('data-final') === 'true';
+        const isPostponed = $el.attr('data-postponed') === 'true';
         const hasNoHitter = $el.hasClass('noHitterBackground');
 
         if (favoriteTeamValue !== 'none') {
@@ -916,7 +919,7 @@ function sortGames() {
         }
 
         if (isInProgress) return 1;
-        if (!isFinal) return 2;
+        if (!isFinal && !isPostponed) return 2;
         if (hasNoHitter) return 3;
         return 4;
     };
