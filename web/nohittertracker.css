@@ -1,0 +1,832 @@
+/*dark mode black = #121212;*/
+:root {
+    --dark-mode-black: #121212;
+    --dark-mode-white: #EEEEEE;
+    --game-card-width: 880px;
+}
+
+body {
+    font-family: 'Overpass-Regular', Arial, sans-serif;
+	font-weight: normal;
+	font-style: normal;
+    margin: 0;
+    background-color: var(--dark-mode-white);
+    caret-color: transparent;
+}
+
+input:focus, textarea:focus {
+    caret-color: auto;
+}
+
+.bold {
+    font-weight: bold;
+}
+
+.darkMode {
+    background-color: var(--dark-mode-black);
+    color: var(--dark-mode-white);
+    border-color: var(--dark-mode-white);
+}
+
+.noHitterBackground {
+    background: rgba(150, 150, 150, 0.2);
+}
+
+.gameHighlighted {
+    background: rgba(150, 150, 150, 0.2);
+}
+
+.currentHalfInning {
+    background: rgb(100, 100, 100);
+    color: white;
+}
+
+.grayBackground {
+    background: rgb(100, 100, 100);
+}
+
+.redTextColor {
+    color: red;
+}
+
+#settingsWrapper {
+    position: absolute;
+    top: 0;
+    left: 0;
+    margin: 14px 0 0 14px;
+    padding: 12px;
+    width: 260px;
+    box-sizing: border-box;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 12px;
+    background: rgba(255, 255, 255, 0.78);
+    box-shadow: 0 4px 14px rgba(0, 0, 0, 0.09);
+    backdrop-filter: blur(4px);
+    z-index: 4;
+}
+
+.darkMode #settingsWrapper {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.05);
+    box-shadow: 0 4px 16px rgba(0, 0, 0, 0.35);
+}
+
+.settingsItem {
+    margin-bottom: 10px;
+}
+
+.settingsItem label {
+    font-size: 14px;
+    font-weight: 700;
+    letter-spacing: 0.03em;
+}
+
+#favoriteTeamContainer {
+    display: flex;
+    flex-direction: column;
+    gap: 6px;
+    margin-bottom: 0;
+}
+
+#favoriteTeam {
+    width: 100%;
+    font-family: inherit;
+    font-size: 14px;
+    line-height: 1.2;
+    padding: 8px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    color: inherit;
+    box-sizing: border-box;
+    outline: none;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+#favoriteTeam option {
+    background: #fff;
+    color: #111;
+}
+
+#favoriteTeam:focus {
+    border-color: rgba(110, 110, 110, 0.9);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.25);
+}
+
+.darkMode #favoriteTeam {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--dark-mode-white);
+}
+
+.darkMode #favoriteTeam option {
+    background: #1f1f1f;
+    color: var(--dark-mode-white);
+}
+
+.darkMode #favoriteTeam:focus {
+    border-color: rgba(238, 238, 238, 0.75);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.35);
+}
+
+#lastUpdated {
+    position: absolute;
+    top: 0;
+    right: 0;
+    margin: 18px 18px 0px 0px;
+}
+
+.arrowContainer {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 28px;
+    height: 28px;
+    cursor: pointer;
+    border-radius: 8px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    background: rgba(255, 255, 255, 0.7);
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+.arrow {
+    border: solid black;
+    border-width: 0 3px 3px 0;
+    display: inline-block;
+    padding: 3px;
+    position: relative;
+}
+.arrowRight {
+    transform: translateX(-1px) rotate(-45deg);
+    -webkit-transform: translateX(-1px) rotate(-45deg);
+}
+.arrowLeft {
+    transform: translateX(1px) rotate(135deg);
+    -webkit-transform: translateX(1px) rotate(135deg);
+}
+.arrowDarkMode {
+    border: solid var(--dark-mode-white);
+    border-width: 0 3px 3px 0;
+}
+
+@media (hover: hover) {
+    .arrowContainer:hover {
+        background: rgba(0, 0, 0, 0.06);
+    }
+}
+
+.arrowContainer:active {
+    transform: translateY(1px);
+}
+
+.darkMode .arrowContainer {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.05);
+}
+
+@media (hover: hover) {
+    .darkMode .arrowContainer:hover {
+        background: rgba(255, 255, 255, 0.12);
+    }
+}
+
+#dateContainer {
+    display: inline;
+}
+
+#datePickerContainer,
+#filterGamesContainer {
+    cursor: default;
+}
+
+#contentContainer {
+    text-align: center;
+}
+
+
+h1 {
+    text-align: center;
+}
+
+#datePickerContainer {
+    margin-bottom: 18px;
+    display: inline-flex;
+    align-items: center;
+    gap: 10px;
+    padding: 9px 12px;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 10px;
+    background: rgba(255, 255, 255, 0.72);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.06);
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.darkMode #datePickerContainer {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.06);
+    box-shadow: 0 2px 12px rgba(0, 0, 0, 0.35);
+}
+
+#datepicker,
+#filterGamesInput {
+    font-family: inherit;
+    font-size: 15px;
+    line-height: 1.2;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.95);
+    color: inherit;
+    outline: none;
+    cursor: text;
+    transition: border-color 0.15s ease, box-shadow 0.15s ease, background-color 0.15s ease;
+}
+
+#datepicker {
+    width: 132px;
+    padding: 7px 10px 5px;
+    text-align: center;
+}
+
+#todayButton {
+    font-family: inherit;
+    font-size: 13px;
+    font-weight: 600;
+    line-height: 1;
+    padding: 7px 10px;
+    border: 1px solid rgba(0, 0, 0, 0.2);
+    border-radius: 8px;
+    background: rgba(255, 255, 255, 0.9);
+    color: inherit;
+    cursor: pointer;
+    transition: background-color 0.15s ease, border-color 0.15s ease, transform 0.08s ease;
+}
+
+@media (hover: hover) {
+    #todayButton:hover {
+        background: rgba(0, 0, 0, 0.06);
+    }
+}
+
+#todayButton:active {
+    transform: translateY(1px);
+}
+
+#todayButton:focus {
+    outline: none;
+    border-color: rgba(110, 110, 110, 0.9);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.25);
+}
+
+#filterGamesContainer {
+    margin-bottom: 30px;
+}
+
+#filterGamesInput {
+    width: min(315px, calc(100vw - 32px));
+    padding: 10px 12px;
+    box-sizing: border-box;
+}
+
+#filterGamesInput::placeholder {
+    color: rgba(0, 0, 0, 0.58);
+}
+
+#datepicker:focus,
+#filterGamesInput:focus {
+    border-color: rgba(110, 110, 110, 0.9);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.25);
+}
+
+.darkMode #datepicker,
+.darkMode #filterGamesInput {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--dark-mode-white);
+}
+
+.darkMode #todayButton {
+    border-color: rgba(255, 255, 255, 0.28);
+    background: rgba(255, 255, 255, 0.09);
+    color: var(--dark-mode-white);
+}
+
+@media (hover: hover) {
+    .darkMode #todayButton:hover {
+        background: rgba(255, 255, 255, 0.15);
+    }
+}
+
+.darkMode #todayButton:focus {
+    border-color: rgba(238, 238, 238, 0.75);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.35);
+}
+
+.darkMode #filterGamesInput::placeholder {
+    color: rgba(238, 238, 238, 0.58);
+}
+
+.darkMode #datepicker:focus,
+.darkMode #filterGamesInput:focus {
+    border-color: rgba(238, 238, 238, 0.75);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.35);
+}
+
+.darkMode .ui-datepicker {
+    background: #1b1b1b;
+    border: 1px solid rgba(255, 255, 255, 0.28);
+    color: var(--dark-mode-white);
+}
+
+.darkMode .ui-datepicker .ui-datepicker-header {
+    background: #222;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--dark-mode-white);
+}
+
+.darkMode .ui-datepicker .ui-state-default {
+    background: #2a2a2a;
+    border: 1px solid rgba(255, 255, 255, 0.2);
+    color: var(--dark-mode-white);
+}
+
+.darkMode .ui-datepicker .ui-state-active,
+.darkMode .ui-datepicker .ui-state-hover {
+    background: #3a3a3a;
+    border-color: rgba(255, 255, 255, 0.35);
+    color: var(--dark-mode-white);
+}
+
+#gameDataErrorBanner {
+    margin: 0 92px 16px;
+    padding: 10px 16px;
+    background: rgba(220, 50, 50, 0.12);
+    border: 1px solid rgba(220, 50, 50, 0.45);
+    border-radius: 4px;
+    color: #c0392b;
+    font-size: 13px;
+}
+
+.darkMode #gameDataErrorBanner {
+    color: #e57373;
+    background: rgba(220, 50, 50, 0.1);
+    border-color: rgba(220, 50, 50, 0.35);
+}
+
+#gamesMessage {
+    padding: 28px;
+    font-style: italic;
+}
+
+#gamesContainer {
+    height: 100%;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, var(--game-card-width));
+    column-gap: 46px;
+    row-gap: 30px;
+    padding: 0 92px 20px;
+    box-sizing: border-box;
+    align-items: start;
+    justify-content: center;
+}
+
+.gameContainer {
+    width: var(--game-card-width);
+    max-width: 100%;
+    box-sizing: border-box;
+    padding: 24px;
+    margin-bottom: 0;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    overflow: visible;
+    cursor: pointer;
+    transition: box-shadow 0.18s ease, transform 0.16s cubic-bezier(0.22, 0.61, 0.36, 1);
+    will-change: transform, box-shadow;
+
+}
+
+.gameContainer.noHitterBackground {
+    cursor: default;
+}
+
+.darkMode .gameContainer {
+    border-color: rgba(255, 255, 255, 0.28);
+}
+
+@media (hover: hover) {
+    #gamesContainer.gamesSelectable .gameContainer:not(.noHitterBackground):hover {
+        box-shadow: 0 0 0 2px rgba(150, 150, 150, 0.2) inset;
+    }
+}
+
+.gameContainer.gameContainerPressed {
+    transform: translateY(1px);
+    box-shadow: 0 0 0 3px rgba(150, 150, 150, 0.25) inset;
+}
+
+#gamesContainer:not(.gamesSelectable) .gameContainer {
+    cursor: default;
+}
+
+.gameHeadingRow {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: 8px;
+}
+
+.gameHeading {
+    text-align: left;
+    margin: 0;
+    font-size: 18px;
+    font-weight: 600;
+    line-height: 1.2;
+}
+
+.gameMeta {
+    margin: 0;
+    font-size: 16px;
+    white-space: nowrap;
+}
+
+.startTimeTip {
+    position: relative;
+    cursor: pointer;
+}
+
+.startTimeTip::after {
+    content: attr(data-tooltip);
+    position: absolute;
+    bottom: calc(100% + 9px);
+    left: 50%;
+    transform: translateX(-50%);
+    background: #f0f0f0;
+    color: #111;
+    padding: 3px 9px;
+    border-radius: 5px;
+    font-size: 16px;
+    white-space: nowrap;
+    pointer-events: none;
+    opacity: 0;
+    transition: opacity 0.12s ease;
+    z-index: 10;
+}
+
+.startTimeTip.startTimeTipVisible::after {
+    opacity: 1;
+}
+
+.gameDetailsContainer {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    column-gap: 18px;
+    margin-top: 14px;
+}
+
+.gameTable {
+    margin: 0;
+    border-collapse: collapse;
+    table-layout: fixed;
+    width: 100%;
+    height: 98px;
+    font-size: 16px;
+}
+
+.gameTable th {
+    border-collapse: collapse;
+    border-top: 0;
+    border-right: 1px solid black;
+    border-bottom: 1px solid black;
+    border-left: 1px solid black;
+}
+.gameTableDarkMode th {
+    border-right: 1px solid var(--dark-mode-white);
+    border-bottom: 1px solid var(--dark-mode-white);
+    border-left: 1px solid var(--dark-mode-white);
+}
+
+.gameTable td {
+    border-collapse: collapse;
+    border: 1px solid black;
+    text-align: center;
+    padding: 4px;
+}
+.gameTableDarkMode td {
+    border-collapse: collapse;
+    border: 1px solid var(--dark-mode-white);
+    text-align: center;
+    padding: 4px;
+}
+
+.gameTable th {
+    padding: 4px;
+}
+
+.teamLogo {
+    display: inline-block;
+    width: 20px;
+    height: 20px;
+    margin-right: 5px;
+    object-fit: contain;
+    flex-shrink: 0;
+}
+
+.homeTeamTableRow th, .homeTeamTableRow td {
+    border-bottom: none !important;
+}
+
+.gameTable th.boxScoreFirstCol {
+    width: 72px;
+    min-width: 72px;
+    box-sizing: border-box;
+}
+
+.gameTable th.boxScoreTeam {
+    white-space: nowrap;
+    width: 72px;
+    min-width: 72px;
+    box-sizing: border-box;
+    vertical-align: middle;
+    position: relative;
+}
+
+.boxScoreTeamInner {
+    display: inline-flex;
+    align-items: center;
+    position: absolute;
+    left: 4px;
+    top: 50%;
+    transform: translateY(-50%);
+}
+
+.boxScoreTeamInner > span {
+    display: block;
+    height: 20px;
+    line-height: 20px;
+    margin: 0;
+    padding: 0;
+    transform: translateY(1px);
+}
+
+.gameTable th:first-child,
+.gameTable td:first-child {
+    border-left: none !important;
+    border-right: 4px solid black !important;
+}
+.gameTableDarkMode th:first-child,
+.gameTableDarkMode td:first-child {
+    border-left: none !important;
+    border-right: 4px solid var(--dark-mode-white) !important;
+}
+
+.gameTable th:nth-last-child(2),
+.gameTable td:nth-last-child(2),
+.gameTable th:nth-last-child(3),
+.gameTable td:nth-last-child(3) {
+    border-left: 4px solid black !important;
+}
+.gameTableDarkMode th:nth-last-child(2),
+.gameTableDarkMode td:nth-last-child(2),
+.gameTableDarkMode th:nth-last-child(3),
+.gameTableDarkMode td:nth-last-child(3) {
+    border-left: 4px solid var(--dark-mode-white) !important;
+}
+
+.gameTable th:last-child,
+.gameTable td:last-child {
+    border-right: none !important;
+}
+
+.gameTable td.crossed {
+    background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), black, transparent calc(50% + 1px)), linear-gradient(to top right, transparent calc(50% - 1px), black, transparent calc(50% + 1px));
+}
+.gameTableDarkMode td.crossed {
+    background-image: linear-gradient(to bottom right, transparent calc(50% - 1px), var(--dark-mode-white), transparent calc(50% + 1px)), linear-gradient(to top right, transparent calc(50% - 1px), var(--dark-mode-white), transparent calc(50% + 1px));
+}
+
+.liveGameInfo {
+    flex-shrink: 0;
+}
+
+.matchupInfo {
+    margin: 10px 0;
+    text-align: left;
+}
+
+.matchupInfoLine {
+    margin: 2px 0;
+    font-size: 14px;
+    line-height: 1.3;
+}
+
+.pitcherDetails {
+    margin-top: 14px;
+    text-align: left;
+}
+
+.pitcherDetails[open] {
+    margin-bottom: 2px;
+}
+
+.pitcherDetailsSummary {
+    cursor: pointer;
+    font-size: 14px;
+    font-weight: 600;
+    width: fit-content;
+    margin: 0;
+}
+
+.pitcherDetails[open] .pitcherDetailsPanel .pitcherDetailText {
+    cursor: text;
+}
+
+.pitcherDetailsPanel {
+    background: var(--dark-mode-white);
+    color: inherit;
+    border: 1px solid rgba(0, 0, 0, 0.18);
+    border-radius: 8px;
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.16);
+    padding: 10px 12px 12px;
+    margin-top: 8px;
+    max-height: 260px;
+    overflow: auto;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 16px 24px;
+    align-items: flex-start;
+    justify-content: space-between;
+    cursor: default;
+}
+
+.darkMode .pitcherDetailsPanel {
+    background: #1b1b1b;
+    border-color: rgba(255, 255, 255, 0.22);
+    box-shadow: 0 8px 24px rgba(0, 0, 0, 0.45);
+}
+
+.pitcherTeamGroup {
+    margin-top: 0;
+    flex: 1 1 0;
+    min-width: 280px;
+}
+
+.pitcherTeamGroup:first-child {
+    margin-top: 0;
+}
+
+.pitcherTeamHeading {
+    margin: 0 0 4px 0;
+    font-size: 14px;
+    font-weight: 600;
+}
+
+.pitcherLineList {
+    padding-left: 12px;
+}
+
+@media (max-width: 760px) {
+    .pitcherDetailsPanel {
+        flex-direction: column;
+        gap: 12px;
+    }
+
+    .pitcherTeamGroup {
+        min-width: 0;
+        width: 100%;
+    }
+}
+
+.pitcherDetailLine {
+    margin: 0;
+    font-size: 14px;
+    line-height: 1.35;
+}
+
+.pitcherDetailLine + .pitcherDetailLine {
+    margin-top: 2px;
+}
+
+.pitcherDetailLineEmpty {
+    font-style: italic;
+    opacity: 0.8;
+}
+
+.ballsStrikesOuts {
+    margin: 8px 0px 0px 0px;
+    font-size: 16px;
+    line-height: 1.1;
+}
+
+.ballsStrikesLine,
+.outsLine {
+    display: block;
+}
+
+.outsLine {
+    margin-top: 2px;
+}
+
+.rotatedSquare {
+    height: 20px;
+    width: 20px;
+    outline: 2px solid black;
+    transform: rotate(45deg);
+    position: absolute;
+}
+.rotatedSquareDarkMode {
+    outline: 2px solid white !important;
+}
+.bases {
+    position: relative;
+    width: 76px;
+    height: 56px;
+}
+.firstBase {
+    top: 28px;
+    left: 48px;
+}
+.secondBase {
+    top: 8px;
+    left: 28px;
+}
+.thirdBase {
+    top: 28px;
+    left: 8px;
+}
+
+.brokenPlayContainer {
+    margin-top: 14px;
+    text-align: left;
+}
+
+.brokenPlayInfo {
+    margin: 0;
+    font-style: italic;
+    font-size: 15px;
+    color: #555;
+}
+
+.brokenPlayInfo + .brokenPlayInfo {
+    margin-top: 4px;
+}
+
+.darkMode .brokenPlayInfo {
+    color: #aaa;
+}
+
+@media (max-width: 1100px) {
+    #gamesContainer {
+        grid-template-columns: repeat(auto-fit, var(--game-card-width));
+        column-gap: 28px;
+        row-gap: 22px;
+        padding: 0 28px 16px;
+        justify-content: center;
+    }
+
+    #filterGamesContainer {
+        margin-bottom: 22px;
+    }
+
+    .gameHeadingRow {
+        flex-direction: column;
+        align-items: flex-start;
+        gap: 4px;
+    }
+
+    .gameDetailsContainer {
+        flex-direction: column;
+        align-items: flex-start;
+        row-gap: 8px;
+    }
+}
+
+@media (max-width: 760px) {
+    #settingsWrapper {
+        position: static;
+        margin: 12px auto 0;
+        width: calc(100% - 28px);
+        max-width: 420px;
+        padding: 10px;
+    }
+
+    #lastUpdated {
+        position: static;
+        margin: 10px 0 4px;
+        text-align: center;
+    }
+
+    #gamesContainer {
+        grid-template-columns: 1fr;
+        column-gap: 0;
+        row-gap: 20px;
+        padding: 0 14px 16px;
+    }
+
+    #filterGamesContainer {
+        margin-bottom: 20px;
+    }
+
+    .gameContainer {
+        width: 100%;
+    }
+}

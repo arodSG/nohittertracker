@@ -1,45 +1,154 @@
 # NoHitterTracker
-NoHitterTracker is a Twitter bot that checks for no-hitters and perfect games in live MLB games.
 
-The script retrieves the list of games for the current day and checks various game/player stats from the MLB Stats API to determine if there is currently a no-hitter or perfect game, and whether or not it's combined. Tweeted game information is stored in a serialized pickle file, `/data/team_ids_tweeted.pkl` - `{team_id: {is_combined: False, is_perfect_game: False, is_finished: False}}`, and the date of the last no-hitter check is stored in `/data/last_game_date.pkl` to determine when to check the next day's games. Tweets are sent if there's a no-hitter or perfect game after `num_innings_to_alert`. For previously tweeted games, additional tweets are sent if a perfect game is downgraded to a no-hitter, if the starting pitcher is replaced (making it a combined no-hitter), if a no-hitter is broken up, and if a no-hitter is completed.
+NoHitterTracker monitors live MLB games for no-hitters and perfect games, automatically sending notifications and providing real-time data via a web UI and HTTP API.
 
-## How to Run
-Run the bot with `python3 nohittertracker/main.py`
+## Features
 
-Use crontab to run the bot on a schedule. Ex: `*/3 10-23,0-3 * 3-10 * python3 nohittertracker/main.py` will check for no-hitters every 3 minutes between 10:00 AM and 3:59 AM from March through October.
+- **Live Monitoring**: Scans MLB Stats API for active no-hitters and perfect games
+- **Event Tracking**: Detects no-hitter starts, downgrades, pitching changes, broken games, and final outcomes
+- **Twitter Integration**: Sends automated tweet notifications for game events (production mode)
+- **Web Interface**: Real-time game tracking website with datepicker (1901–present) for historical lookups
+- **HTTP API**: RESTful endpoints for querying no-hitter data programmatically
+- **State Persistence**: Tracks tweeted events to prevent duplicates
+
+## Quick Start
+
+### Web Interface
+
+Open `web/index.html` in a browser to view the no-hitter tracker website. The page auto-refreshes every 60 seconds and displays active no-hitters with live inning-by-inning updates.
+
+### Run the Services
+
+Bot runner:
+
+```bash
+python bot.py
+```
+
+API server:
+
+```bash
+python api.py --host 127.0.0.1 --port 8001
+```
+
+## API Endpoints
+
+- `GET /health` — Health check
+- `GET /api/no-hitters` — Active no-hitters and perfect games
+- `GET /api/games` — All games with no-hitter/perfect-game activity
+
+### Query Parameters
+
+Both `/api/no-hitters` and `/api/games` accept:
+
+- `date=MM/DD/YYYY` — Specific date filter
+- `include_events=true|false` — Include event timeline
+- `include_games=true|false` — Include full game details
+- `include_all_plays=true|false` — Include all plays (verbose)
+- `include_event_snapshot=true|false` — Include game snapshots at each event
+- `include_legacy=true|false` — Include legacy/historical data
+
+### Response Format
+
+Both endpoints return a normalized response structure:
+
+```json
+{
+  "response_version": "2.1",
+  "meta": { ... },
+  "entities": {
+    "games_by_id": { ... },
+    "game_ids_in_order": [ ... ],
+    "active_no_hitters_by_key": { ... }
+  },
+  "activity": {
+    "events": [ ... ]
+  }
+}
+```
+
+## Project Structure
+
+```
+nohittertracker/
+├── bot.py                  # Entry point for Twitter bot runner
+├── api.py                  # Entry point for HTTP API server
+├── web/                    # Website interface
+│   ├── index.html          # Web UI
+│   └── nohittertracker.js  # Frontend logic
+├── nohittertracker/        # Internal package (library code)
+│   ├── service.py          # NoHitterTracker core scanning logic
+│   ├── api_server.py       # HTTP request routing and responses
+│   ├── formatter.py        # Tweet message formatting
+│   ├── state.py            # Game state persistence
+│   ├── game_details.py     # Live game data parsing
+│   ├── play_details.py     # Play-by-play parsing
+│   ├── util.py             # Utilities (logging, config, HTTP)
+│   ├── constants.py        # Configuration templates
+│   ├── models/             # Response dataclasses
+│   └── __init__.py         # Package exports
+├── requirements.txt        # Python dependencies
+├── config.json             # Application config
+└── README.md              # This file
+```
+
+**Root Entrypoints**:
+- `bot.py` — Execute to run the Twitter bot
+- `api.py` — Execute to run the HTTP API server
+
+**Internal Package** (`nohittertracker/`):
+- Contains all library modules
+- Imported by root entrypoints and each other
+- Not meant to be executed directly
 
 ## Dependencies
-Dependencies are found in `requirements.txt` and can be installed with `pip3 install -r requirements.txt`
 
-## .env
-`.env.example` is a template file that must be replaced with `.env` and filled in with details for the bot's Twitter account. To get this info, a new application must be created in [Twitter's Developer Portal](https://developer.twitter.com/en/portal/projects-and-apps) while logged into the bot account.
+Install from `requirements.txt`:
 
-`ENVIRONMENT` - `test` or `prod`, `test` will run the script but no tweets will be sent.
+```bash
+pip install -r requirements.txt
+```
 
-`INTERVAL_MINUTES` - Minutes to wait between each no-hitter check.
+## Environment Variables
 
-`GITHUB_TOKEN` - GitHub token for the arodsgntfy private repo. Used by pip to install the module from GitHub.
+Configure via `.env` file (see `.env.example` as template):
 
-`TWITTER_CONSUMER_KEY` and `TWITTER_CONSUMER_SECRET` correspond to the API Key and Secret under the Consumer Keys section of your Twitter application.
+**Required**:
+- `ENVIRONMENT` — `test` (no Twitter posting) or `prod` (live posting); default: `test`
+- `GITHUB_TOKEN` — Required to install the `arodsgntfy` dependency from GitHub at build time
+- `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET` — Twitter API v2 credentials
+- `TWITTER_ACCESS_TOKEN`, `TWITTER_ACCESS_TOKEN_SECRET` — Twitter API v2 credentials
 
-`TWITTER_ACCESS_TOKEN` and `TWITTER_ACCESS_TOKEN_SECRET` correspond to the Access Token and Secret under the Authentication Tokens section of your Twitter application. The access token must be created with read+write permissions.
+Tuning constants (cache TTLs, polling windows) are hardcoded in `nohittertracker/constants.py`.
 
-## config.json
-`config.json.example` is a template file that must be replaced with `config.json`.
+## Configuration
 
-- `num_innings_to_alert` - decimal
-  - Number of no-hit innings that must be pitched by a team before sending a tweet.
-  - This should be in "baseball" format, ex: 6.0 for 6 full innings pitched, 6.1 for 6 innings + 1 out, 6.2 for 6 innings + 2 outs.
-- `ntfy_settings`
-  - `enabled` - boolean
-    - Flag for sending Ntfy push notifications. If set to true, notifications will be sent.
-  - `topic` - string
-    - Topic to use when sending Ntfy push notifications. Ex: `"topic": "arodsg-nohittertracker"`
-  - `title` - string
-    - Title to use when sending Ntfy push notifications. Ex: `"title": "NoHitterTracker"`
-- `last_game_date` - string
-  - Used to determine if the next day's games should be retrieved. The script compares this value to the current date every time the script runs, and updates this value to the current date after checking for no-hitters.
-  - Ex: `"last_game_date": "09/09/2024"`
-- `team_hashtags`
-  - Hastags to use in tweets for each team when involved in a no-hitter.
-  - Ex: `"CWS": "WhiteSox"`
+`config.json` should define:
+
+- `num_innings_to_alert` — Minimum innings before alerting (e.g., 5)
+- `ntfy_settings` — Notification service config (e.g., Pushover credentials)
+- `team_hashtags` — Map of team abbreviations to hashtags for tweets
+
+Example:
+
+```json
+{
+  "num_innings_to_alert": 6.0,
+  "ntfy_settings": {
+    "enabled": true,
+    "topic": "ntfy-topic-name",
+    "title": "NtfyTitle"
+  },
+  "team_hashtags": {
+    "ATL": "BravesCountry",
+    "AZ": "DBacks",
+    ...
+  }
+}
+```
+
+## State Files
+
+The bot persists tweeted event IDs to prevent duplicate tweets across restarts:
+
+- `data/tweeted_event_ids.pkl` — Event IDs tweeted today; reset automatically each new day

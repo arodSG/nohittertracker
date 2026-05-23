@@ -1,12 +1,17 @@
 import os
 
 
-INTERVAL_MINUTES = int(os.getenv("INTERVAL_MINUTES", 2))
-INTERVAL_SECONDS = INTERVAL_MINUTES * 60
+PACKAGE_DIR = os.path.dirname(os.path.realpath(__file__))
+PROJECT_ROOT = os.path.dirname(PACKAGE_DIR)
+CONFIG_FILE_PATH = os.path.join(PROJECT_ROOT, 'config.json')
 
-LAST_GAME_DATE_FILE_PATH = '/data/last_game_date.pkl'
-TEAM_IDS_TWEETED_FILE_PATH = '/data/team_ids_tweeted.pkl'
-CONFIG_FILE_PATH = os.path.dirname(os.path.realpath(__file__)) + '/config.json'
+# --- Tuning ---
+SCHEDULE_CACHE_TTL_SECONDS: float = 60.0
+GAME_FEED_FINAL_CACHE_TTL_SECONDS: float = 300.0
+GAME_FEED_SCHEDULED_CACHE_TTL_SECONDS: float = 3600.0
+GAME_FEED_NEAR_START_CACHE_TTL_SECONDS: float = 60.0
+GAME_FEED_NEAR_START_WINDOW_SECONDS: float = 1800.0
+GAME_SOON_WINDOW_MINUTES: int = 5
 
 PITCHER_STATS = '{num_strikeouts} K, {num_walks} BB, {num_runs} R, {num_pitches} PC'
 PITCHER_STATS_HBP = '{num_strikeouts} K, {num_walks} BB, {num_hit_by_pitch} HBP, {num_runs} R, {num_pitches} PC'
