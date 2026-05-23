@@ -10,7 +10,7 @@ from pathlib import Path
 import tweepy
 from dotenv import load_dotenv
 
-from nohittertracker import constants, util
+from nohittertracker import util
 import requests
 
 
@@ -21,7 +21,6 @@ class ApiEventBot:
 
     def __init__(self, api_base_url: str | None = None):
         self.api_base_url = api_base_url or os.getenv('API_BASE_URL', 'http://127.0.0.1:8001')
-        self.interval_seconds = constants.INTERVAL_SECONDS
         self._today: str = (datetime.datetime.now() - datetime.timedelta(hours=10)).strftime('%Y-%m-%d')
         self.tweeted_event_ids: set[str] = set()
         self._load_tweeted_event_ids()

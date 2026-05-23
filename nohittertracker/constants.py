@@ -4,9 +4,6 @@ import os
 PACKAGE_DIR = os.path.dirname(os.path.realpath(__file__))
 PROJECT_ROOT = os.path.dirname(PACKAGE_DIR)
 
-INTERVAL_MINUTES = int(os.getenv("INTERVAL_MINUTES", 2))
-INTERVAL_SECONDS = INTERVAL_MINUTES * 60
-
 CONFIG_FILE_PATH = os.path.join(PROJECT_ROOT, 'config.json')
 
 PITCHER_STATS = '{num_strikeouts} K, {num_walks} BB, {num_runs} R, {num_pitches} PC'
