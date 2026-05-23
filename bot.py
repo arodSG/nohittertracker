@@ -21,7 +21,7 @@ class ApiEventBot:
     def __init__(self, api_base_url: str | None = None):
         self.api_base_url = api_base_url or os.getenv('API_BASE_URL', 'http://127.0.0.1:8001')
         self.interval_seconds = constants.INTERVAL_SECONDS
-        self._today: str = datetime.date.today().isoformat()
+        self._today: str = (datetime.datetime.now() - datetime.timedelta(hours=10)).strftime('%Y-%m-%d')
         self.tweeted_event_ids: set[str] = set()
         self._load_tweeted_event_ids()
 
@@ -109,7 +109,7 @@ class ApiEventBot:
 
     def run_once(self, game_date: str | None = None) -> int:
         """Poll the API once and process new events. Returns count of active in-progress no-hitters."""
-        today = datetime.date.today().isoformat()
+        today = (datetime.datetime.now() - datetime.timedelta(hours=10)).strftime('%Y-%m-%d')
         if today != self._today:
             util.logger.info(f'New day detected ({self._today} -> {today}), resetting tweeted event IDs')
             self._today = today
@@ -154,11 +154,12 @@ class ApiEventBot:
         return f'{int(minutes)} {"minute" if int(minutes) == 1 else "minutes"}'
 
     def _get_effective_game_date(self) -> str:
-        """Use the same 5-hour offset as service.py to determine the current game date."""
-        return (datetime.datetime.now() - datetime.timedelta(hours=5)).strftime('%m/%d/%Y')
+        """Use a 10-hour offset so the game date rolls over at 5am CDT, safely past any late/extra-innings games."""
+        return (datetime.datetime.now() - datetime.timedelta(hours=10)).strftime('%m/%d/%Y')
 
     def _get_today_games(self) -> list[dict]:
-        """Fetch games for the effective game date (with 5-hour offset)."""
+        """Fetch games for the effective game date (with 10-hour offset)."""
+        game_date = self._get_effective_game_date()
         game_date = self._get_effective_game_date()
         try:
             resp = requests.get('https://statsapi.mlb.com/api/v1/schedule', params={'sportId': 1, 'date': game_date})

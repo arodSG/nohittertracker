@@ -125,7 +125,7 @@ class NoHitterTracker:
                 self._start_cache_pruner()
 
     def default_game_date(self) -> str:
-        return (datetime.now() - timedelta(hours=5)).strftime('%m/%d/%Y')
+        return (datetime.now() - timedelta(hours=10)).strftime('%m/%d/%Y')
 
     @staticmethod
     def _float_env_seconds(env_name: str, default: float) -> float:
