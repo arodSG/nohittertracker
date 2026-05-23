@@ -107,6 +107,8 @@ class ApiEventBot:
         except tweepy.TweepyException as exc:
             util.logger.error(f'Tweet failed: {exc}')
             util.arodsg_ntfy(f'Tweet failed: {exc}')
+        except Exception as exc:
+            util.logger.error(f'Unexpected error in _send_tweet: {exc}')
 
     def run_once(self, game_date: str | None = None) -> int:
         """Poll the API once and process new events. Returns count of active in-progress no-hitters."""
