@@ -14,7 +14,7 @@ from nohittertracker.service import NoHitterTracker
 
 def parse_args() -> argparse.Namespace:
     parser = argparse.ArgumentParser(description='Run the NoHitterTracker API server.')
-    parser.add_argument('--host', default=os.getenv('HOST', '0.0.0.0'))
+    parser.add_argument('--host', default='0.0.0.0')
     parser.add_argument('--port', type=int, default=int(os.getenv('PORT', 8001)))
     return parser.parse_args()
 

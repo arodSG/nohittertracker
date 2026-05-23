@@ -115,17 +115,11 @@ Configure via `.env` file (see `.env.example` as template):
 
 **Required**:
 - `ENVIRONMENT` — `test` (no Twitter posting) or `prod` (live posting); default: `test`
-- `GITHUB_TOKEN` — Required for `arodsgntfy` notification dependency
+- `GITHUB_TOKEN` — Required to install the `arodsgntfy` dependency from GitHub at build time
 - `TWITTER_CONSUMER_KEY`, `TWITTER_CONSUMER_SECRET` — Twitter API v2 credentials
 - `TWITTER_ACCESS_TOKEN`, `TWITTER_ACCESS_TOKEN_SECRET` — Twitter API v2 credentials
 
-**Optional**:
-- `INTERVAL_MINUTES` — Bot polling interval; default: `2` minutes
-- `NOHITTERTRACKER_SCHEDULE_CACHE_TTL_SECONDS` — MLB schedule cache time-to-live; default: `60.0` seconds
-- `NOHITTERTRACKER_GAME_FEED_SCHEDULED_CACHE_TTL_SECONDS` — TTL for scheduled games that are not close to first pitch; default: `3600.0` seconds
-- `NOHITTERTRACKER_GAME_FEED_NEAR_START_WINDOW_SECONDS` — How soon before first pitch a scheduled game is treated as near start; default: `1800.0` seconds
-- `NOHITTERTRACKER_GAME_FEED_NEAR_START_CACHE_TTL_SECONDS` — TTL for near-start and pregame (`P`) game feeds; default: `60.0` seconds
-- `NOHITTERTRACKER_GAME_FEED_FINAL_CACHE_TTL_SECONDS` — TTL for finished game feeds; default: `21600.0` seconds
+Tuning constants (cache TTLs, polling windows) are hardcoded in `nohittertracker/constants.py`.
 
 ## Configuration
 

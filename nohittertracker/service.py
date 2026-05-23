@@ -128,18 +128,6 @@ class NoHitterTracker:
         return (datetime.now() - timedelta(hours=10)).strftime('%m/%d/%Y')
 
     @staticmethod
-    def _float_env_seconds(env_name: str, default: float) -> float:
-        ttl_env = os.getenv(env_name)
-        if ttl_env is not None:
-            try:
-                parsed = float(ttl_env)
-                if parsed >= 0:
-                    return parsed
-            except ValueError:
-                pass
-        return default
-
-    @staticmethod
     def _parse_mlb_datetime(date_time_str: str | None) -> datetime | None:
         if not date_time_str:
             return None
@@ -634,43 +622,23 @@ class NoHitterTracker:
         for cache_key in expired_keys:
             del cache[cache_key]
 
-    @staticmethod
-    def _schedule_cache_ttl_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_SCHEDULE_CACHE_TTL_SECONDS', 60.0)
-
-    @staticmethod
-    def _game_feed_final_cache_ttl_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_FINAL_CACHE_TTL_SECONDS', 300.0)
-
-    @staticmethod
-    def _game_feed_scheduled_cache_ttl_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_SCHEDULED_CACHE_TTL_SECONDS', 3600.0)
-
-    @staticmethod
-    def _game_feed_near_start_cache_ttl_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_NEAR_START_CACHE_TTL_SECONDS', 60.0)
-
-    @staticmethod
-    def _game_feed_near_start_window_seconds() -> float:
-        return NoHitterTracker._float_env_seconds('NOHITTERTRACKER_GAME_FEED_NEAR_START_WINDOW_SECONDS', 1800.0)
-
     def _game_feed_cache_ttl_seconds(self, game_status: str, game_start_time: str | None) -> float:
         if game_status in {'F'} | GameDetails._SPECIAL_STATUSES:
-            return self._game_feed_final_cache_ttl_seconds()
+            return constants.GAME_FEED_FINAL_CACHE_TTL_SECONDS
 
         if game_status in {'S', 'P'}:
             if game_status == 'P':
-                return self._game_feed_near_start_cache_ttl_seconds()
+                return constants.GAME_FEED_NEAR_START_CACHE_TTL_SECONDS
 
             start_time = self._parse_mlb_datetime(game_start_time)
             if start_time is None:
-                return self._game_feed_scheduled_cache_ttl_seconds()
+                return constants.GAME_FEED_SCHEDULED_CACHE_TTL_SECONDS
 
             seconds_until_first_pitch = (start_time - datetime.now(timezone.utc)).total_seconds()
-            if seconds_until_first_pitch <= self._game_feed_near_start_window_seconds():
-                return self._game_feed_near_start_cache_ttl_seconds()
+            if seconds_until_first_pitch <= constants.GAME_FEED_NEAR_START_WINDOW_SECONDS:
+                return constants.GAME_FEED_NEAR_START_CACHE_TTL_SECONDS
 
-            return self._game_feed_scheduled_cache_ttl_seconds()
+            return constants.GAME_FEED_SCHEDULED_CACHE_TTL_SECONDS
 
         return 0.0
 
@@ -705,7 +673,7 @@ class NoHitterTracker:
         if game_status == 'F':
             feed_abstract_code = payload.get('gameData', {}).get('status', {}).get('abstractGameCode', 'F')
             if feed_abstract_code != 'F':
-                effective_ttl = self._game_feed_near_start_cache_ttl_seconds()
+                effective_ttl = constants.GAME_FEED_NEAR_START_CACHE_TTL_SECONDS
 
         with self._game_feed_cache_lock:
             self._game_feed_cache[cache_key] = (now + effective_ttl, payload)
@@ -713,7 +681,7 @@ class NoHitterTracker:
         return payload
 
     def _get_game_info_by_date_cached(self, game_date: str) -> dict[int, dict[str, Any]]:
-        ttl_seconds = self._schedule_cache_ttl_seconds()
+        ttl_seconds = constants.SCHEDULE_CACHE_TTL_SECONDS
         now = time.monotonic()
 
         with self._schedule_cache_lock:
