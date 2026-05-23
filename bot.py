@@ -1,6 +1,7 @@
 #!/usr/bin/python3
 
 import datetime
+import math
 import os
 import pickle
 import time
@@ -146,12 +147,13 @@ class ApiEventBot:
     @staticmethod
     def _format_minutes(minutes: float) -> str:
         """Format a duration as 'X hour(s) Y minute(s)' with correct plurality."""
-        h, m = divmod(int(minutes), 60)
+        total = math.ceil(minutes)
+        h, m = divmod(total, 60)
         if h > 0 and m > 0:
             return f'{h} {"hour" if h == 1 else "hours"} {m} {"minute" if m == 1 else "minutes"}'
         elif h > 0:
             return f'{h} {"hour" if h == 1 else "hours"}'
-        return f'{int(minutes)} {"minute" if int(minutes) == 1 else "minutes"}'
+        return f'{total} {"minute" if total == 1 else "minutes"}'
 
     def _get_effective_game_date(self) -> str:
         """Use a 10-hour offset so the game date rolls over at 5am CDT, safely past any late/extra-innings games."""
