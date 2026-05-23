@@ -572,7 +572,7 @@ class NoHitterTracker:
         game_details,
         team_id: int,
         game_status_detailed: str,
-    ) -> tuple[dict[str, Any] | None, TrackerEvent | None]:
+    ) -> tuple[dict[str, Any] | None, list[TrackerEvent]]:
         snapshot = self._build_snapshot(game_details, team_id, game_status_detailed)
         innings_pitched = snapshot['innings_pitched']
         alert_threshold = snapshot['alert_threshold']
@@ -580,7 +580,7 @@ class NoHitterTracker:
         active_snapshot = snapshot if snapshot['is_in_progress'] and snapshot['is_no_hitter'] else None
 
         if innings_pitched < alert_threshold:
-            return active_snapshot, None
+            return active_snapshot, []
 
         try:
             if snapshot['is_no_hitter']:
@@ -588,29 +588,34 @@ class NoHitterTracker:
                 downgrade_play = snapshot.get('downgrade_play')
                 is_perfect_game = snapshot['is_perfect_game']
                 is_combined = snapshot['is_combined']
-                is_pitching_change = is_combined and snapshot.get('replacing_pitcher_name') is not None
+                starter_ip = float((snapshot.get('starting_pitcher_line') or {}).get('innings_pitched', 0))
+                is_pitching_change = is_combined and snapshot.get('replacing_pitcher_name') is not None and starter_ip >= alert_threshold
 
                 if downgrade_play is not None and not is_perfect_game:
                     if downgrade_play.get('completed_innings', 0) >= alert_threshold:
                         message = self.formatter.build_downgrade_message(game_details, team_id)
                         if message is not None:
-                            return active_snapshot, self._event('perfect_game_downgrade', game_details, team_id, message, False, snapshot)
+                            return active_snapshot, [self._event('perfect_game_downgrade', game_details, team_id, message, False, snapshot)]
                 if is_pitching_change:
                     message = self.formatter.build_pitching_change_message(game_details, team_id)
                     if message is not None:
-                        return active_snapshot, self._event('pitching_change', game_details, team_id, message, False, snapshot)
+                        return active_snapshot, [self._event('pitching_change', game_details, team_id, message, False, snapshot)]
 
-                message = self.formatter.build_no_hitter_message(game_details, team_id, is_final=is_final)
-                return active_snapshot, self._event('no_hitter_update', game_details, team_id, message, is_final, snapshot)
+                message = self.formatter.build_no_hitter_message(game_details, team_id, is_final=is_final, innings_pitched=None if is_final else alert_threshold)
+                return active_snapshot, [self._event('no_hitter_update', game_details, team_id, message, is_final, snapshot)]
             broken_play = snapshot.get('broken_play')
             if broken_play is not None and broken_play.get('completed_innings', 0) >= alert_threshold:
-                message = self.formatter.build_broken_message(game_details, team_id)
-                if message is not None:
-                    return None, self._event('no_hitter_broken', game_details, team_id, message, True, snapshot)
+                broken_message = self.formatter.build_broken_message(game_details, team_id)
+                if broken_message is not None:
+                    update_message = self.formatter.build_no_hitter_message(game_details, team_id, is_final=False, innings_pitched=alert_threshold)
+                    return None, [
+                        self._event('no_hitter_update', game_details, team_id, update_message, False, snapshot),
+                        self._event('no_hitter_broken', game_details, team_id, broken_message, True, snapshot),
+                    ]
         except KeyError:
-            return active_snapshot, None
+            return active_snapshot, []
 
-        return active_snapshot, None
+        return active_snapshot, []
 
     @staticmethod
     def _pool_size_for_num_games(num_games: int) -> int:
@@ -779,23 +784,24 @@ class NoHitterTracker:
             snapshot_id = self._snapshot_id(snapshot)
             snapshot_version = int(snapshot_id.split(':')[-1])
             alert_threshold = float(snapshot.get('alert_threshold', 0))
-            broken_play = snapshot.get('broken_play')
-            downgrade_play = snapshot.get('downgrade_play')
+            event_type = event['event_type']
+            broken_play = snapshot.get('broken_play') if event_type == 'no_hitter_broken' else None
+            downgrade_play = snapshot.get('downgrade_play') if event_type == 'perfect_game_downgrade' else None
             play = broken_play if broken_play is not None else downgrade_play
             play_alert_eligible = bool(play and play.get('completed_innings', 0) >= alert_threshold)
-            if event['event_type'] == 'no_hitter_update':
+            if event_type == 'no_hitter_update':
                 event_id = f"evt_{event['game_id']}_{event['team_id']}_no_hitter_update_{'final' if event['is_finished'] else 'active'}"
-            elif event['event_type'] in ('no_hitter_broken', 'perfect_game_downgrade', 'pitching_change'):
-                event_id = f"evt_{event['game_id']}_{event['team_id']}_{event['event_type']}"
+            elif event_type in ('no_hitter_broken', 'perfect_game_downgrade', 'pitching_change'):
+                event_id = f"evt_{event['game_id']}_{event['team_id']}_{event_type}"
             else:
                 event_id = f"evt_{event['game_id']}_{event['team_id']}_{generated_at.replace(':', '').replace('-', '')}_{i:02d}"
             normalized_event = {
                 'event_id': event_id,
                 'event_ts': generated_at,
-                'event_type': event['event_type'],
+                'event_type': event_type,
                 'game_id': event['game_id'],
                 'team_id': event['team_id'],
-                'lifecycle_status': self._event_lifecycle_status(event['event_type']),
+                'lifecycle_status': self._event_lifecycle_status(event_type),
                 'is_finished': event['is_finished'],
                 'is_combined': event['is_combined'],
                 'is_perfect_game': event['is_perfect_game'],
@@ -926,11 +932,10 @@ class NoHitterTracker:
         events: list[dict[str, Any]] = []
         game_details = GameDetails(game_id, response_json=game_feed_response)
         for team_id in (current_game_info['home_team_id'], current_game_info['away_team_id']):
-            active_snapshot, event = self._inspect_team(game_details, team_id, current_game_info['status_detailed'])
+            active_snapshot, team_events = self._inspect_team(game_details, team_id, current_game_info['status_detailed'])
             if active_snapshot is not None:
                 active_no_hitters.append(active_snapshot)
-            if event is not None:
-                events.append(event.to_dict())
+            events.extend(e.to_dict() for e in team_events)
 
         return {
             'game_id': game_id,

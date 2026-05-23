@@ -25,7 +25,7 @@ class NoHitterAPIHandler(BaseHTTPRequestHandler):
         self.send_header('Access-Control-Allow-Headers', 'Content-Type')
 
     def _write_json(self, payload: dict, status: HTTPStatus = HTTPStatus.OK) -> None:
-        body = json.dumps(payload, indent=2).encode('utf-8')
+        body = json.dumps(payload, indent=2, ensure_ascii=False).encode('utf-8')
         self.send_response(status.value)
         self._set_common_headers(len(body))
         self.end_headers()

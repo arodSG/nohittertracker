@@ -64,8 +64,8 @@ class TweetFormatter:
             lines.append(self.build_pitching_line(player_id, player_name, pitcher_details['stats']['pitching']))
         return lines
 
-    def build_no_hitter_message(self, game_details, team_id: int, *, is_final: bool) -> str:
-        innings_pitched = game_details.get_innings_pitched(team_id)
+    def build_no_hitter_message(self, game_details, team_id: int, *, is_final: bool, innings_pitched: float | None = None) -> str:
+        innings_pitched = innings_pitched if innings_pitched is not None else game_details.get_innings_pitched(team_id)
         is_combined = game_details.is_combined(team_id)
         is_perfect_game = game_details.is_perfect_game(team_id)
         no_hitter_status = 'perfect game' if is_perfect_game else 'no-hitter'
