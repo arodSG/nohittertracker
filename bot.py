@@ -89,26 +89,26 @@ class ApiEventBot:
         return {}
 
     def _send_tweet(self, event: dict) -> None:
-        """Send a tweet for an event."""
+        """Send a tweet for an event. Raises on tweet failure so the caller can retry."""
         tweet_text = event.get('tweet_text', '')
         if not tweet_text:
             return
 
-        try:
-            if util.ENVIRONMENT == 'prod':
-                client = self._twitter_client()
-                response = client.create_tweet(text=tweet_text)
-                tweet_url = f"https://twitter.com/NoHitterTracker/status/{response.data['id']}"
-                util.logger.info(f'Tweet sent: {tweet_url}')
+        if util.ENVIRONMENT == 'prod':
+            client = self._twitter_client()
+            response = client.create_tweet(text=tweet_text)
+            tweet_url = f"https://twitter.com/NoHitterTracker/status/{response.data['id']}"
+            util.logger.info(f'Tweet sent: {tweet_url}')
+            try:
                 util.arodsg_ntfy(tweet_text, tweet_url)
-            else:
-                util.logger.info(f'Test mode - would tweet: {tweet_text}')
+            except Exception as exc:
+                util.logger.warning(f'Notification failed after tweet: {exc}')
+        else:
+            util.logger.info(f'Test mode - would tweet: {tweet_text}')
+            try:
                 util.arodsg_ntfy(f'[TEST] {tweet_text}')
-        except tweepy.TweepyException as exc:
-            util.logger.error(f'Tweet failed: {exc}')
-            util.arodsg_ntfy(f'Tweet failed: {exc}')
-        except Exception as exc:
-            util.logger.error(f'Unexpected error in _send_tweet: {exc}')
+            except Exception as exc:
+                util.logger.warning(f'Notification failed in test mode: {exc}')
 
     def run_once(self, game_date: str | None = None) -> int:
         """Poll the API once and process new events. Returns count of active in-progress no-hitters."""
@@ -150,7 +150,11 @@ class ApiEventBot:
             event_id = event.get('event_id')
             if event_id and event_id not in self.tweeted_event_ids:
                 util.logger.info(f'Processing new event: {event_id}')
-                self._send_tweet(event)
+                try:
+                    self._send_tweet(event)
+                except Exception as exc:
+                    util.logger.error(f'Tweet failed for {event_id}, will retry next poll: {exc}')
+                    continue
                 self.tweeted_event_ids.add(event_id)
                 self._save_tweeted_event_ids()
 
