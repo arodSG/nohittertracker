@@ -105,6 +105,8 @@ class TrackerEvent:
     message: str
     tweet_text: str
     snapshot: dict[str, Any]
+    innings_pitched: float | None = None
+    sort_key: float = 0.0
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

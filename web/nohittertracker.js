@@ -416,7 +416,6 @@ function makeScheduleRequest(date) {
             date,
             include_events: true,
             include_event_snapshot: false,
-            include_legacy: false
         },
         success: function(payload) {
             try {

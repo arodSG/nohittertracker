@@ -126,11 +126,11 @@ class ApiEventBot:
         in_progress_no_hitters = {k: v for k, v in active_no_hitters.items() if v.get('is_in_progress')}
         if in_progress_no_hitters:
             summaries = ', '.join(
-                f'[{s.get("team_name")}: isNoHitter={s.get("is_no_hitter")}, isPerfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
+                f'[{s.get("team_name")}: perfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
                 for s in in_progress_no_hitters.values()
             )
             threshold = next(iter(in_progress_no_hitters.values())).get('alert_threshold')
-            util.logger.info(f'{len(in_progress_no_hitters)} active no-hitter(s) below threshold ({threshold} inn): {summaries}')
+            util.logger.info(f'no-hitters: {summaries}')
 
         if not self._warmed_up:
             # First poll after startup: silently absorb all existing events so the bot
