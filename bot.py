@@ -308,8 +308,8 @@ class ApiEventBot:
                     sleep_seconds = max(0, (next_hour - now).total_seconds())
                     sleep_minutes = -(-int(sleep_seconds) // 60)
                     sleep_display = self._format_minutes(sleep_minutes)
-                    suffix = f'next game in {self._format_minutes(next_minutes)}' if next_minutes is not None else 'no games today'
-                    util.logger.info(f'Dormant ({suffix}). Sleeping for {sleep_display}.')
+                    next_game = f'Next game in {self._format_minutes(next_minutes)}' if next_minutes is not None else 'No games today'
+                    util.logger.info(f'{next_game}. Sleeping for {sleep_display}.')
                     time.sleep(sleep_seconds)
                 continue
 
