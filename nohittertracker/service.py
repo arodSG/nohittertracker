@@ -650,15 +650,25 @@ class NoHitterTracker:
                     broken_events: list[TrackerEvent] = [
                         self._event('no_hitter_update', game_details, team_id, update_message, False, snapshot, innings_pitched=alert_threshold, sort_key=self._ip_to_sort_key(alert_threshold)),
                     ]
+                    # Append no_hitter_broken before pitching_change so that when they share
+                    # the same sort key (starter gives up the hit then is replaced), stable
+                    # sort preserves broken-first order — the hit happened before the change.
+                    broken_events.append(self._event('no_hitter_broken', game_details, team_id, broken_message, True, snapshot, innings_pitched=broken_innings, sort_key=broken_play['completed_innings'] * 3 + broken_play['completed_outs']))
                     if is_pitching_change:
-                        pc_msg = self.formatter.build_pitching_change_message(game_details, team_id, starter_innings_pitched=starter_ip)
-                        if pc_msg is not None:
-                            broken_events.append(self._event('pitching_change', game_details, team_id, pc_msg, False, snapshot, innings_pitched=starter_ip, sort_key=self._ip_to_sort_key(starter_ip)))
+                        pc_sort_key = self._ip_to_sort_key(starter_ip)
+                        broken_sort_key = broken_play['completed_innings'] * 3 + broken_play['completed_outs']
+                        # Only include the pitching_change event if the starter left *before*
+                        # the no-hitter was broken (i.e. the reliever gave up the hit).
+                        # If the starter gave up the hit themselves (pc_sort_key >= broken),
+                        # the "combined no-hitter still active" message would be factually wrong.
+                        if pc_sort_key < broken_sort_key:
+                            pc_msg = self.formatter.build_pitching_change_message(game_details, team_id, starter_innings_pitched=starter_ip)
+                            if pc_msg is not None:
+                                broken_events.append(self._event('pitching_change', game_details, team_id, pc_msg, False, snapshot, innings_pitched=starter_ip, sort_key=pc_sort_key))
                     if is_separate_downgrade:
                         dg_msg = self.formatter.build_downgrade_message(game_details, team_id)
                         if dg_msg is not None:
                             broken_events.append(self._event('perfect_game_downgrade', game_details, team_id, dg_msg, False, snapshot, innings_pitched=downgrade_play.get('completed_innings', alert_threshold), sort_key=downgrade_play['completed_innings'] * 3 + downgrade_play['completed_outs']))
-                    broken_events.append(self._event('no_hitter_broken', game_details, team_id, broken_message, True, snapshot, innings_pitched=broken_innings, sort_key=broken_play['completed_innings'] * 3 + broken_play['completed_outs']))
                     broken_events.sort(key=lambda e: e.sort_key)
                     return None, broken_events
         except KeyError:
