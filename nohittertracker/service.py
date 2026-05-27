@@ -549,7 +549,6 @@ class NoHitterTracker:
             pitcher_lines=pitcher_lines,
             downgrade_play=downgrade_play.to_dict() if downgrade_play is not None else None,
             broken_play=broken_play.to_dict() if broken_play is not None else None,
-            tweet_variants=self.formatter.build_tweet_variants(game_details, team_id).to_dict(),
         )
         return snapshot.to_dict()
 

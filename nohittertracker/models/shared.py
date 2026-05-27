@@ -37,23 +37,6 @@ class PlaySnapshot:
 
 
 @dataclass
-class TweetVariants:
-    current_message: str | None = None
-    current_tweet: str | None = None
-    final_message: str | None = None
-    final_tweet: str | None = None
-    downgrade_message: str | None = None
-    downgrade_tweet: str | None = None
-    pitching_change_message: str | None = None
-    pitching_change_tweet: str | None = None
-    broken_message: str | None = None
-    broken_tweet: str | None = None
-
-    def to_dict(self) -> dict[str, Any]:
-        return asdict(self)
-
-
-@dataclass
 class TeamSnapshot:
     game_id: int
     game_status: str
@@ -88,7 +71,6 @@ class TeamSnapshot:
     pitcher_lines: list[dict[str, Any]] = field(default_factory=list)
     downgrade_play: dict[str, Any] | None = None
     broken_play: dict[str, Any] | None = None
-    tweet_variants: dict[str, Any] = field(default_factory=dict)
 
     def to_dict(self) -> dict[str, Any]:
         return asdict(self)

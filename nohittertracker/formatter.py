@@ -5,7 +5,7 @@ from typing import Any
 from . import constants
 from .play_details import PlayDetails
 
-from .models import PitchingLine, PlaySnapshot, TweetVariants
+from .models import PitchingLine, PlaySnapshot
 
 
 class TweetFormatter:
@@ -212,34 +212,4 @@ class TweetFormatter:
             is_combined=play_details.is_combined(),
         )
 
-    def build_tweet_variants(self, game_details, team_id: int) -> TweetVariants:
-        variants = TweetVariants()
-        try:
-            variants.current_message = self.build_no_hitter_message(game_details, team_id, is_final=False)
-            variants.current_tweet = self.build_tweet(variants.current_message, game_details)
-            variants.final_message = self.build_no_hitter_message(game_details, team_id, is_final=True)
-            variants.final_tweet = self.build_tweet(variants.final_message, game_details)
-        except KeyError:
-            pass
 
-        try:
-            game_details.set_broken_details()
-        except KeyError:
-            return variants
-
-        downgrade_message = self.build_downgrade_message(game_details, team_id)
-        if downgrade_message is not None:
-            variants.downgrade_message = downgrade_message
-            variants.downgrade_tweet = self.build_tweet(downgrade_message, game_details)
-
-        pitching_change_message = self.build_pitching_change_message(game_details, team_id)
-        if pitching_change_message is not None:
-            variants.pitching_change_message = pitching_change_message
-            variants.pitching_change_tweet = self.build_tweet(pitching_change_message, game_details)
-
-        broken_message = self.build_broken_message(game_details, team_id)
-        if broken_message is not None:
-            variants.broken_message = broken_message
-            variants.broken_tweet = self.build_tweet(broken_message, game_details)
-
-        return variants

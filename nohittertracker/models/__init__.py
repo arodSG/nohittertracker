@@ -25,7 +25,7 @@ from .game import (
     Team,
     TeamStats,
 )
-from .shared import PitchingLine, PlaySnapshot, TeamSnapshot, TrackerEvent, TweetVariants
+from .shared import PitchingLine, PlaySnapshot, TeamSnapshot, TrackerEvent
 
 __all__ = [
     'BattingStats',
@@ -58,5 +58,4 @@ __all__ = [
     'TrackerApiResponse',
     'TeamSnapshot',
     'TrackerEvent',
-    'TweetVariants',
 ]
