@@ -364,6 +364,7 @@ class ApiEventBot:
 
 def main() -> None:
     load_dotenv()
+    util.load_config(constants.CONFIG_FILE_PATH)
     util.create_session()
     bot = ApiEventBot()
     bot.run_forever()
