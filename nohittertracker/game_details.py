@@ -127,6 +127,88 @@ class GameDetails:
         starting_pitcher_id = team_boxscore['pitchers'][0] if len(team_boxscore['pitchers']) > 0 else 0
         return team_boxscore['players']['ID{pitcher_id}'.format(pitcher_id=starting_pitcher_id)]['stats']['pitching']
 
+    def get_starting_pitcher_stats_at_threshold(self, team_id: int, alert_threshold: float) -> dict | None:
+        """Compute the starting pitcher's stats at exactly alert_threshold innings using play-by-play data.
+
+        This avoids the mismatch where the bot polls slightly past the threshold and the boxscore
+        stats reflect more innings than the pinned alert_threshold innings in the message text.
+
+        Returns a dict with keys matching the boxscore pitching stats format:
+            strikeOuts, baseOnBalls, intentionalWalks, hitByPitch, runs, pitchesThrown
+        Returns None if the starting pitcher info is unavailable.
+        """
+        team_boxscore = self.get_team_boxscore(team_id)
+        if not team_boxscore.get('pitchers'):
+            return None
+
+        starting_pitcher_id = team_boxscore['pitchers'][0]
+
+        # Home team pitches in top half-innings (isTopInning=True); away team in bottom (False).
+        is_pitching_top = team_id == self.home_team_id
+
+        # Convert threshold to total outs already recorded at that point.
+        # 6.0 innings = 18 outs, 6.1 = 19 outs, 6.2 = 20 outs.
+        threshold_complete = int(alert_threshold)
+        threshold_extra_outs = round((alert_threshold - threshold_complete) * 3)
+        threshold_total_outs = threshold_complete * 3 + threshold_extra_outs
+
+        strikeouts = 0
+        walks = 0
+        intentional_walks = 0
+        hit_by_pitch = 0
+        runs = 0
+        pitches = 0
+
+        for play in self.all_plays:
+            about = play.get('about', {})
+            if not about.get('isComplete', False):
+                continue
+            if about.get('isTopInning', False) != is_pitching_top:
+                continue  # Wrong half-inning for this pitching team
+
+            # count.outs = outs already recorded at the START of this at-bat (0, 1, or 2).
+            # Outs reset per half-inning, so total outs = (inning - 1) * 3 + count.outs.
+            inning = about.get('inning', 0)
+            outs_before = play.get('count', {}).get('outs', 0)
+            total_outs_before = (inning - 1) * 3 + outs_before
+
+            if total_outs_before >= threshold_total_outs:
+                break  # All further plays are at or past the threshold
+
+            if play.get('matchup', {}).get('pitcher', {}).get('id') != starting_pitcher_id:
+                continue  # Not the starting pitcher
+
+            event_type = play.get('result', {}).get('eventType', '')
+            if event_type == 'strikeout':
+                strikeouts += 1
+            elif event_type == 'intent_walk':
+                intentional_walks += 1
+            elif event_type == 'walk':
+                walks += 1
+            elif event_type == 'hit_by_pitch':
+                hit_by_pitch += 1
+
+            pitches += len(play.get('pitchIndex', []))
+
+            for runner in play.get('runners', []):
+                movement = runner.get('movement', {})
+                details = runner.get('details', {})
+                # A runner scores when start is a base and end is null (scored) or 'score'.
+                # Exclude plays where the runner was put out on the bases.
+                if (movement.get('start') is not None
+                        and (movement.get('end') is None or movement.get('end') == 'score')
+                        and not details.get('isOut', False)):
+                    runs += 1
+
+        return {
+            'strikeOuts': strikeouts,
+            'baseOnBalls': walks,
+            'intentionalWalks': intentional_walks,
+            'hitByPitch': hit_by_pitch,
+            'runs': runs,
+            'pitchesThrown': pitches,
+        }
+
     def get_team_pitching_stats(self, team_id):
         team_boxscore = self.get_team_boxscore(team_id)
         return team_boxscore['teamStats']['pitching']

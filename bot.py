@@ -18,11 +18,13 @@ class ApiEventBot:
     """Polls the no-hitter API and sends tweets for new events, but only when games are active."""
 
     GAME_SOON_WINDOW_MINUTES = constants.GAME_SOON_WINDOW_MINUTES
+    INTER_TWEET_DELAY_SECONDS = 30
 
     def __init__(self, api_base_url: str | None = None):
         self.api_base_url = api_base_url or os.getenv('API_BASE_URL', 'http://127.0.0.1:8001')
         self._today: str = (datetime.datetime.now() - datetime.timedelta(hours=10)).strftime('%Y-%m-%d')
         self.tweeted_event_ids: set[str] = set()
+        self._warmed_up: bool = False
         self._load_tweeted_event_ids()
 
     def _tweeted_events_path(self) -> Path:
@@ -88,24 +90,26 @@ class ApiEventBot:
         return {}
 
     def _send_tweet(self, event: dict) -> None:
-        """Send a tweet for an event."""
+        """Send a tweet for an event. Raises on tweet failure so the caller can retry."""
         tweet_text = event.get('tweet_text', '')
         if not tweet_text:
             return
 
-        try:
-            if util.ENVIRONMENT == 'prod':
-                client = self._twitter_client()
-                response = client.create_tweet(text=tweet_text)
-                tweet_url = f"https://twitter.com/NoHitterTracker/status/{response.data['id']}"
-                util.logger.info(f'Tweet sent: {tweet_url}')
+        if util.ENVIRONMENT == 'prod':
+            client = self._twitter_client()
+            response = client.create_tweet(text=tweet_text)
+            tweet_url = f"https://twitter.com/NoHitterTracker/status/{response.data['id']}"
+            util.logger.info(f'Tweet sent: {tweet_url}')
+            try:
                 util.arodsg_ntfy(tweet_text, tweet_url)
-            else:
-                util.logger.info(f'Test mode - would tweet: {tweet_text}')
+            except Exception as exc:
+                util.logger.warning(f'Notification failed after tweet: {exc}')
+        else:
+            util.logger.info(f'Test mode - would tweet: {tweet_text}')
+            try:
                 util.arodsg_ntfy(f'[TEST] {tweet_text}')
-        except tweepy.TweepyException as exc:
-            util.logger.error(f'Tweet failed: {exc}')
-            util.arodsg_ntfy(f'Tweet failed: {exc}')
+            except Exception as exc:
+                util.logger.warning(f'Notification failed in test mode: {exc}')
 
     def run_once(self, game_date: str | None = None) -> int:
         """Poll the API once and process new events. Returns count of active in-progress no-hitters."""
@@ -123,25 +127,44 @@ class ApiEventBot:
         in_progress_no_hitters = {k: v for k, v in active_no_hitters.items() if v.get('is_in_progress')}
         if in_progress_no_hitters:
             summaries = ', '.join(
-                f'[{s.get("team_name")}: isNoHitter={s.get("is_no_hitter")}, isPerfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
+                f'[{s.get("team_name")}: perfectGame={s.get("is_perfect_game")}, innings={s.get("innings_pitched")}]'
                 for s in in_progress_no_hitters.values()
             )
             threshold = next(iter(in_progress_no_hitters.values())).get('alert_threshold')
-            util.logger.info(f'{len(in_progress_no_hitters)} active no-hitter(s) below threshold ({threshold} inn): {summaries}')
+            util.logger.info(f'no-hitters: {summaries}')
+
+        if not self._warmed_up:
+            # First poll after startup: silently absorb all existing events so the bot
+            # is point-forward and won't re-tweet anything that already happened.
+            event_ids = [e.get('event_id') for e in events if e.get('event_id')]
+            self.tweeted_event_ids.update(event_ids)
+            self._save_tweeted_event_ids()
+            self._warmed_up = True
+            util.logger.info(f'Warmup complete — marked {len(event_ids)} existing event(s) as seen, will only tweet new events from here')
+            return len(in_progress_no_hitters), 0
 
         if not events:
             util.logger.info('No new events')
-            return len(in_progress_no_hitters)
+            return len(in_progress_no_hitters), 0
 
+        tweeted_this_poll = 0
         for event in events:
             event_id = event.get('event_id')
             if event_id and event_id not in self.tweeted_event_ids:
+                if tweeted_this_poll > 0:
+                    util.logger.info(f'Waiting {self.INTER_TWEET_DELAY_SECONDS}s before next tweet...')
+                    time.sleep(self.INTER_TWEET_DELAY_SECONDS)
                 util.logger.info(f'Processing new event: {event_id}')
-                self._send_tweet(event)
+                try:
+                    self._send_tweet(event)
+                except Exception as exc:
+                    util.logger.error(f'Tweet failed for {event_id}, will retry next poll: {exc}')
+                    continue
                 self.tweeted_event_ids.add(event_id)
                 self._save_tweeted_event_ids()
+                tweeted_this_poll += 1
 
-        return len(in_progress_no_hitters)
+        return len(in_progress_no_hitters), max(0, tweeted_this_poll - 1)
 
     @staticmethod
     def _format_minutes(minutes: float) -> str:
@@ -290,16 +313,17 @@ class ApiEventBot:
                     next_hour = (now + datetime.timedelta(hours=1)).replace(minute=0, second=0, microsecond=0)
                     sleep_seconds = max(0, (next_hour - now).total_seconds())
                     sleep_minutes = -(-int(sleep_seconds) // 60)
-                    sleep_display = '1 hour' if sleep_minutes >= 60 else f'{sleep_minutes} minutes'
-                    suffix = f'next game in {self._format_minutes(next_minutes)}' if next_minutes is not None else 'no games today'
-                    util.logger.info(f'Dormant ({suffix}). Sleeping for {sleep_display}.')
+                    sleep_display = self._format_minutes(sleep_minutes)
+                    next_game = f'Next game in {self._format_minutes(next_minutes)}' if next_minutes is not None else 'No games today'
+                    util.logger.info(f'{next_game}. Sleeping for {sleep_display}.')
                     time.sleep(sleep_seconds)
                 continue
 
             # ── Active: game in progress or starting very soon ────────────────────
             num_active_no_hitters = 1  # safe default on error
+            inter_tweet_delays = 0
             try:
-                num_active_no_hitters = self.run_once()
+                num_active_no_hitters, inter_tweet_delays = self.run_once()
             except Exception as exc:
                 util.logger.error(f'Error in run_once: {exc}')
 
@@ -342,11 +366,12 @@ class ApiEventBot:
                         f'No more games scheduled today. Sleeping {sleep_display} until effective game day ends (5am CDT).'
                     )
 
-            time.sleep(sleep_seconds)
+            time.sleep(max(0, sleep_seconds - inter_tweet_delays * self.INTER_TWEET_DELAY_SECONDS))
 
 
 def main() -> None:
     load_dotenv()
+    util.load_config(constants.CONFIG_FILE_PATH)
     util.create_session()
     bot = ApiEventBot()
     bot.run_forever()

@@ -5,7 +5,7 @@ from typing import Any
 from . import constants
 from .play_details import PlayDetails
 
-from .models import PitchingLine, PlaySnapshot, TweetVariants
+from .models import PitchingLine, PlaySnapshot
 
 
 class TweetFormatter:
@@ -64,10 +64,10 @@ class TweetFormatter:
             lines.append(self.build_pitching_line(player_id, player_name, pitcher_details['stats']['pitching']))
         return lines
 
-    def build_no_hitter_message(self, game_details, team_id: int, *, is_final: bool) -> str:
-        innings_pitched = game_details.get_innings_pitched(team_id)
-        is_combined = game_details.is_combined(team_id)
-        is_perfect_game = game_details.is_perfect_game(team_id)
+    def build_no_hitter_message(self, game_details, team_id: int, *, is_final: bool, innings_pitched: float | None = None, is_combined: bool | None = None, is_perfect_game: bool | None = None, pitcher_stats: dict | None = None) -> str:
+        innings_pitched = innings_pitched if innings_pitched is not None else game_details.get_innings_pitched(team_id)
+        is_combined = is_combined if is_combined is not None else game_details.is_combined(team_id)
+        is_perfect_game = is_perfect_game if is_perfect_game is not None else game_details.is_perfect_game(team_id)
         no_hitter_status = 'perfect game' if is_perfect_game else 'no-hitter'
         opposing_team = game_details.get_opposing_team(team_id)
 
@@ -98,7 +98,7 @@ class TweetFormatter:
 
         pitcher_name = game_details.get_starting_pitcher_name(team_id)
         team_abbrv = game_details.get_team_abbrv(team_id)
-        pitching_stats = game_details.get_starting_pitcher_details(team_id)
+        pitching_stats = pitcher_stats if pitcher_stats is not None else game_details.get_starting_pitcher_details(team_id)
         pitcher_line = self.build_pitching_line(
             game_details.get_team_boxscore(team_id)['pitchers'][0],
             pitcher_name,
@@ -145,13 +145,13 @@ class TweetFormatter:
             innings_pitched=innings_pitched,
         )
 
-    def build_pitching_change_message(self, game_details, team_id: int) -> str | None:
+    def build_pitching_change_message(self, game_details, team_id: int, starter_innings_pitched: float | None = None) -> str | None:
         if not game_details.is_combined(team_id):
             return None
 
         starting_pitcher_name = game_details.get_starting_pitcher_name(team_id)
         replacing_pitcher_name = game_details.get_replacing_pitcher_name(team_id)
-        innings_pitched = game_details.get_innings_pitched(team_id)
+        innings_pitched = starter_innings_pitched if starter_innings_pitched is not None else game_details.get_innings_pitched(team_id)
         no_hitter_status = 'perfect game' if game_details.is_perfect_game(team_id) else 'no-hitter'
         team_abbrv = game_details.get_team_abbrv(team_id)
         pitching_stats = game_details.get_starting_pitcher_details(team_id)
@@ -212,34 +212,4 @@ class TweetFormatter:
             is_combined=play_details.is_combined(),
         )
 
-    def build_tweet_variants(self, game_details, team_id: int) -> TweetVariants:
-        variants = TweetVariants()
-        try:
-            variants.current_message = self.build_no_hitter_message(game_details, team_id, is_final=False)
-            variants.current_tweet = self.build_tweet(variants.current_message, game_details)
-            variants.final_message = self.build_no_hitter_message(game_details, team_id, is_final=True)
-            variants.final_tweet = self.build_tweet(variants.final_message, game_details)
-        except KeyError:
-            pass
 
-        try:
-            game_details.set_broken_details()
-        except KeyError:
-            return variants
-
-        downgrade_message = self.build_downgrade_message(game_details, team_id)
-        if downgrade_message is not None:
-            variants.downgrade_message = downgrade_message
-            variants.downgrade_tweet = self.build_tweet(downgrade_message, game_details)
-
-        pitching_change_message = self.build_pitching_change_message(game_details, team_id)
-        if pitching_change_message is not None:
-            variants.pitching_change_message = pitching_change_message
-            variants.pitching_change_tweet = self.build_tweet(pitching_change_message, game_details)
-
-        broken_message = self.build_broken_message(game_details, team_id)
-        if broken_message is not None:
-            variants.broken_message = broken_message
-            variants.broken_tweet = self.build_tweet(broken_message, game_details)
-
-        return variants
