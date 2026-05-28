@@ -633,7 +633,7 @@ class NoHitterTracker:
             if broken_play is not None and broken_play.get('completed_innings', 0) >= alert_threshold:
                 broken_message = self.formatter.build_broken_message(game_details, team_id)
                 if broken_message is not None:
-                    broken_innings = broken_play.get('completed_innings', snapshot.get('innings_pitched', 0))
+                    broken_innings = broken_play.get('completed_innings', 0) + broken_play.get('completed_outs', 0) / 10.0
                     is_combined = snapshot.get('is_combined', False)
                     starter_ip = float((snapshot.get('starting_pitcher_line') or {}).get('innings_pitched', 0))
                     is_pitching_change = is_combined and snapshot.get('replacing_pitcher_name') is not None and starter_ip >= alert_threshold
