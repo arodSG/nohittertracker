@@ -18,6 +18,7 @@ class ApiEventBot:
     """Polls the no-hitter API and sends tweets for new events, but only when games are active."""
 
     GAME_SOON_WINDOW_MINUTES = constants.GAME_SOON_WINDOW_MINUTES
+    INTER_TWEET_DELAY_SECONDS = 30
 
     def __init__(self, api_base_url: str | None = None):
         self.api_base_url = api_base_url or os.getenv('API_BASE_URL', 'http://127.0.0.1:8001')
@@ -140,15 +141,19 @@ class ApiEventBot:
             self._save_tweeted_event_ids()
             self._warmed_up = True
             util.logger.info(f'Warmup complete — marked {len(event_ids)} existing event(s) as seen, will only tweet new events from here')
-            return len(in_progress_no_hitters)
+            return len(in_progress_no_hitters), 0
 
         if not events:
             util.logger.info('No new events')
-            return len(in_progress_no_hitters)
+            return len(in_progress_no_hitters), 0
 
+        tweeted_this_poll = 0
         for event in events:
             event_id = event.get('event_id')
             if event_id and event_id not in self.tweeted_event_ids:
+                if tweeted_this_poll > 0:
+                    util.logger.info(f'Waiting {self.INTER_TWEET_DELAY_SECONDS}s before next tweet...')
+                    time.sleep(self.INTER_TWEET_DELAY_SECONDS)
                 util.logger.info(f'Processing new event: {event_id}')
                 try:
                     self._send_tweet(event)
@@ -157,8 +162,9 @@ class ApiEventBot:
                     continue
                 self.tweeted_event_ids.add(event_id)
                 self._save_tweeted_event_ids()
+                tweeted_this_poll += 1
 
-        return len(in_progress_no_hitters)
+        return len(in_progress_no_hitters), max(0, tweeted_this_poll - 1)
 
     @staticmethod
     def _format_minutes(minutes: float) -> str:
@@ -315,8 +321,9 @@ class ApiEventBot:
 
             # ── Active: game in progress or starting very soon ────────────────────
             num_active_no_hitters = 1  # safe default on error
+            inter_tweet_delays = 0
             try:
-                num_active_no_hitters = self.run_once()
+                num_active_no_hitters, inter_tweet_delays = self.run_once()
             except Exception as exc:
                 util.logger.error(f'Error in run_once: {exc}')
 
@@ -359,7 +366,7 @@ class ApiEventBot:
                         f'No more games scheduled today. Sleeping {sleep_display} until effective game day ends (5am CDT).'
                     )
 
-            time.sleep(sleep_seconds)
+            time.sleep(max(0, sleep_seconds - inter_tweet_delays * self.INTER_TWEET_DELAY_SECONDS))
 
 
 def main() -> None:
